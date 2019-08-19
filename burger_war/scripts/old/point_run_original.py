@@ -16,11 +16,11 @@ class OnigiriRun(object):
 	self.goal_count = 0
 	self.movebase_status = 0
 	#ROS publisher
-	self.goal_point_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=1)
+	self.goal_point_pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1)
 	#ROS subscriber
-	self.move_base_status_sub = rospy.Subscriber('move_base/status', GoalStatusArray, self.GoalStatusArrayCallback, queue_size=1)
+	self.move_base_status_sub = rospy.Subscriber('/move_base/status', GoalStatusArray, self.GoalStatusArrayCallback, queue_size=1)
 
-	f=open('/home/arthurma2/burger_ws/src/burger_war/burger_war/scripts/point_list.txt')
+	f=open('/home/ubuntu/catkin_ws/src/onigiri_war/scripts/point_list.txt')
 	point_str = f.read()
 	f.close()
 	self.point = []
@@ -71,7 +71,7 @@ class OnigiriRun(object):
         	self.pose.pose.orientation.y = 0
         	self.pose.pose.orientation.z = self.point[self.goal_count][2]
         	self.pose.pose.orientation.w = self.point[self.goal_count][3]
-        	self.pose.header.frame_id = "/red_bot/map"
+        	self.pose.header.frame_id = "/map"
         	self.pose.header.stamp = rospy.Time.now()
 		self.goal_point_pub.publish(self.pose)
 		if (self.goal_count + 1) >= len(self.point):
