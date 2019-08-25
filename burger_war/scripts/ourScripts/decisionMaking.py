@@ -37,7 +37,6 @@ sniper_pos = [[-1.0,0,0],[0.0,-1.0,math.pi/2],[1.0,0.0,math.pi],[0.0,1.0,-math.p
 my_point=0
 enemy_point=0
 goal_reached_flg = False    # ゴールに到達したかどうかのフラグ
-goal_canceled_flg = False    # ゴールがキャンセルされたかどうかのフラグ
 back_direction=0.0
 
 def movebaseStatusCallback(movebase_status):
@@ -85,15 +84,12 @@ def odomCallback(my_pose_msg):
 
 def checkMVresultCallback(move_result_msg):
     global goal_reached_flg
-    global goal_canceled_flg
     print "------------------move_result_msg.status.text--------------------------"
     print move_result_msg.status.text
     if move_result_msg.status.text == "Goal reached.":
         goal_reached_flg = True
     #else:
     #    goal_reached_flg = False
-    if move_result_msg.status.text == "This goal was canceled because another goal was recieved by the simple action server":
-        goal_canceled_flg = True
 
 def InputPose(x,y,z):
     pose=Pose2D()
@@ -298,6 +294,7 @@ if __name__ == '__main__':
 
         if operation_sequence == "Initial Move":    # 最初の移動
             if not goal_reached_flg:
+                my_zone_no = (checkPosition(Tx,Ty))[0]
                 InputPose(sniper_pos[my_zone_no][0], sniper_pos[my_zone_no][1], sniper_pos[my_zone_no][2])
             else:
                 goal_reached_flg = False
@@ -305,6 +302,7 @@ if __name__ == '__main__':
                 start_time = time.time()
         elif initial_motion_flg and checkEnemy([enemy_x, enemy_y, enemy_th]) and getEnemyDistance([Tx, Ty, th], [enemy_x, enemy_y, enemy_th]) < enemy_distance_threshold:  #敵が居て、かつ近かったら
             print "!!!!!!!! Enemy Sniper !!!!!!!!"
+            my_zone_no = (checkPosition(Tx,Ty))[0]
             enemy_look_ang = lookatEnemyAng([Tx, Ty, th], [enemy_x, enemy_y, enemy_th])
             InputPose(Tx, Ty, enemy_look_ang)
         else:   # 敵が居ない or 距離が遠い
@@ -313,6 +311,7 @@ if __name__ == '__main__':
                     #print "My Zone: " + str(my_zone_no)
                     #print "Next Zone: " + str(next_zone_no)
                     if not goal_reached_flg:
+                        my_zone_no = (checkPosition(Tx,Ty))[0]
                         InputPose(sniper_pos[next_zone_no][0], sniper_pos[next_zone_no][1], sniper_pos[next_zone_no][2])
                     else:       # ポイントに到着したら
                         goal_reached_flg = False
