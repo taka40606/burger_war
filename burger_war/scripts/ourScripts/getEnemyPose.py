@@ -18,10 +18,12 @@ class GetEnemyPose(object):
 		self.pose_p=Pose2D()
 		self.pose=Pose2D()
 		self.pose_r=Pose2D()
+		self.pose_g=Pose2D()
 		self.NEWtarget=[0]*18
 		self.OLDtarget=[0]*18
 		self.flag=[0]*18
 		self.pose_red_ball=[0.0]*3
+		self.pose_green=[0.0]*3
 		self.obstacle=[0.0]*2
 		self.rmakerPose=[[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],
 		[0.9,0.5,math.pi],[0.0,0.5,0.0],[0.9,-0.5,math.pi],[0.0,-0.5,0.0],
@@ -47,11 +49,22 @@ class GetEnemyPose(object):
 		self.warState_sub = rospy.Subscriber('war_state', String, self.warStateCallback) 
 		self.map_sub = rospy.Subscriber('map', OccupancyGrid, self.mapCallback)
 		self.odom_sub = rospy.Subscriber('odom', Odometry, self.odomCallback)
+		self.enemy_pose_green_marker_sub = rospy.Subscriber('green_position', Pose2D, self.enemyPoseGreenCallback)
 		self.enemy_pose_red_ball_sub = rospy.Subscriber('red_ball_position', Pose2D, self.enemyPoseRedBallCallback)
 		self.pose_pub = rospy.Publisher('enemy_pose', Pose2D, queue_size=10)
 		self.scan_sub = rospy.Subscriber('scan', LaserScan, self.scanCallback)
 		self.points_array_pub = rospy.Publisher('points_array', Int32MultiArray, queue_size=10)
 		self.obstacle_direction_pub = rospy.Publisher('obstacle_direction', Float32, queue_size=10)
+
+	def enemyPoseGreenCallback(self,pose):
+		self.pose_green[0]=pose.x
+		self.pose_green[1]=pose.y
+		self.pose_green[2]=pose.theta
+		#print 'enemy_pose_green'
+		#print pose
+		self.pose_g.x=self.pose_green[0]
+		self.pose_g.y=self.pose_green[1]
+		self.pose_g.theta=0.0
 
 	def enemyPoseRedBallCallback(self,pose):
 		self.pose_red_ball[0]=pose.x
@@ -310,6 +323,7 @@ class GetEnemyPose(object):
 		self.integratePoses()
 
 	def integratePoses(self):
+		'''
 		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
 		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
@@ -317,15 +331,21 @@ class GetEnemyPose(object):
 		else:
 			self.pose_pub.publish(self.pose)
 		'''
-		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
+		if not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
+			self.pose_pub.publish(self.pose_g)
+			print "green"
+		elif not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
+			print "pointcloud"
 		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
 			self.pose_pub.publish(self.pose)
+			print "maker"
 		elif not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
 			self.pose_pub.publish(self.pose_r)
+			print "red"
 		else:
 			self.pose_pub.publish(self.pose)
-		'''
+
 if __name__ == '__main__':
 	rospy.init_node('get_enemy_pose', anonymous=True)
 	#warState_sub = rospy.Subscriber('war_state', String, warStateCallback) 

@@ -21,6 +21,7 @@
     <node pkg="burger_war" type="moveBurger.py" name="moveBurger" output="screen"/>
     <node pkg="burger_war" type="find_marker.py" name="find_marker" output="screen"/>
     <node pkg="burger_war" type="getRedBallPosition.py" name="getRedBallPosition" output="screen"/>
+    <node pkg="burger_war" type="getGreenCirclePosition.py" name="getGreenCirclePosition" output="screen"/>
     <!--include file="$(find burger_war)/launch/burger_teleop.launch"/-->
 
     <!-- END sample program node -->

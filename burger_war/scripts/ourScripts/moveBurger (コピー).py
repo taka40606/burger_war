@@ -28,7 +28,7 @@ class OnigiriRun(object):
 
 	def moveCallback(self,point_):
 		self.point = [point_.x, point_.y, math.sin(point_.theta/2), math.cos(point_.theta/2)]
-		self.movebase_status=0
+		#self.movebase_status=0
 		#print("movebase_status::::%d" % self.movebase_status)
 		'''
 		while True:
@@ -41,51 +41,51 @@ class OnigiriRun(object):
 		status=Int8()
 		status.data=self.movebase_status
 		self.movebase_status_pub.publish(status)
-		if self.movebase_status!=2:
-			status_id = 0;
-			#uint8 PENDING         = 0  
-			#uint8 ACTIVE          = 1 
-			#uint8 PREEMPTED       = 2
-			#uint8 SUCCEEDED       = 3
-			#uint8 ABORTED         = 4
-			#uint8 REJECTED        = 5
-			#uint8 PREEMPTING      = 6
-			#uint8 RECALLING       = 7
-			#uint8 RECALLED        = 8
-			#uint8 LOST            = 9
-			if len(data.status_list) != 0:
-				goalStatus = data.status_list[0]
-				status_id = goalStatus.status
-				#print status_id
 
-			#moving
-			if self.movebase_status == 1:
-				if status_id == 3 or status_id == 0:
-					self.movebase_status = 2
-				elif status_id == 4:
-					self.movebase_status = 4
+		status_id = 0;
+		#uint8 PENDING         = 0  
+		#uint8 ACTIVE          = 1 
+		#uint8 PREEMPTED       = 2
+		#uint8 SUCCEEDED       = 3
+		#uint8 ABORTED         = 4
+		#uint8 REJECTED        = 5
+		#uint8 PREEMPTING      = 6
+		#uint8 RECALLING       = 7
+		#uint8 RECALLED        = 8
+		#uint8 LOST            = 9
+		if len(data.status_list) != 0:
+			goalStatus = data.status_list[0]
+			status_id = goalStatus.status
+			#print status_id
+
+		#moving
+		if self.movebase_status == 1:
+			if status_id == 3 or status_id == 0:
+				self.movebase_status = 2
+			elif status_id == 4:
+				self.movebase_status = 4
+			return
+		#stop
+		elif self.movebase_status == 0 or self.movebase_status == 2:
+			self.pose = PoseStamped()
+			self.pose.pose.position.x = self.point[0]
+			self.pose.pose.position.y = self.point[1]
+			self.pose.pose.position.z = 0.0
+			#quat = tf.transformations.quaternion_from_euler(0.0, 0.0, 0.0)
+			self.pose.pose.orientation.x = 0
+			self.pose.pose.orientation.y = 0
+			self.pose.pose.orientation.z = self.point[2]
+			self.pose.pose.orientation.w = self.point[3]
+			self.pose.header.frame_id = self.my_bot_id #change
+			self.pose.header.stamp = rospy.Time.now()
+			self.goal_point_pub.publish(self.pose)
+			self.movebase_status = 3
+			return
+		elif self.movebase_status == 3:
+			if status_id == 0:
+				self.movebase_status = 0
+			elif status_id == 3:
 				return
-			#stop
-			elif self.movebase_status == 0 or self.movebase_status == 2:
-				self.pose = PoseStamped()
-				self.pose.pose.position.x = self.point[0]
-				self.pose.pose.position.y = self.point[1]
-				self.pose.pose.position.z = 0.0
-				#quat = tf.transformations.quaternion_from_euler(0.0, 0.0, 0.0)
-				self.pose.pose.orientation.x = 0
-				self.pose.pose.orientation.y = 0
-				self.pose.pose.orientation.z = self.point[2]
-				self.pose.pose.orientation.w = self.point[3]
-				self.pose.header.frame_id = self.my_bot_id #change
-				self.pose.header.stamp = rospy.Time.now()
-				self.goal_point_pub.publish(self.pose)
-				self.movebase_status = 3
-				return
-			elif self.movebase_status == 3:
-				if status_id == 0:
-					self.movebase_status = 0
-				elif status_id == 3:
-					return
 			else:
 				self.movebase_status = 1
 				return
@@ -93,8 +93,10 @@ class OnigiriRun(object):
 			self.movebase_status = 0
 			return
 
+
 	def mapCallback(self, map_info):
 		self.my_bot_id = map_info.header.frame_id
+
 
 if __name__=="__main__":
 	rospy.init_node("move_burger")

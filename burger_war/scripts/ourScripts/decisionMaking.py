@@ -37,6 +37,7 @@ sniper_pos = [[-1.0,0,0],[0.0,-1.0,math.pi/2],[1.0,0.0,math.pi],[0.0,1.0,-math.p
 my_point=0
 enemy_point=0
 goal_reached_flg = False    # ゴールに到達したかどうかのフラグ
+goal_canceled_flg = False    # ゴールがキャンセルされたかどうかのフラグ
 back_direction=0.0
 
 def movebaseStatusCallback(movebase_status):
@@ -84,12 +85,15 @@ def odomCallback(my_pose_msg):
 
 def checkMVresultCallback(move_result_msg):
     global goal_reached_flg
+    global goal_canceled_flg
     print "------------------move_result_msg.status.text--------------------------"
     print move_result_msg.status.text
     if move_result_msg.status.text == "Goal reached.":
         goal_reached_flg = True
     #else:
     #    goal_reached_flg = False
+    if move_result_msg.status.text == "This goal was canceled because another goal was recieved by the simple action server":
+        goal_canceled_flg = True
 
 def InputPose(x,y,z):
     pose=Pose2D()
