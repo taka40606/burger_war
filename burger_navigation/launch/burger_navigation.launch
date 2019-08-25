@@ -3,8 +3,8 @@
 <launch>
   <!-- Arguments -->
   <arg name="map_file" default="$(find burger_navigation)/maps/map.yaml"/>
-  <arg name="open_rviz" default="true"/>
-  <arg name="move_forward_only" default="true"/>
+  <arg name="open_rviz" default="true"/>  <!--default="true"/-->
+  <arg name="move_forward_only" default="true"/>  <!--default="true"/-->
   <arg name="cmd_vel_topic" default="cmd_vel" />
   <arg name="odom_topic" default="odom" />
   <arg name="scan_topic"     default="scan"/>
@@ -43,7 +43,7 @@
     <param name="initial_cov_yy"            value="0.05"/>
     <param name="initial_cov_aa"            value="0.1"/>
     <param name="gui_publish_rate"          value="50.0"/>
-    <param name="use_map_topic"		    value="true"/>
+    <param name="use_map_topic"		          value="true"/>
 
     <remap from="scan"                      to="$(arg scan_topic)"/>
     <param name="laser_max_range"           value="3.5"/>
@@ -81,11 +81,13 @@
     <remap from="odom" to="$(arg odom_topic)"/>
     <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />
     <param name="local_costmap/global_frame"             value="$(arg robot_name)/odom"/>
+    <!--param name="local_costmap/scan/sensor_frame"             value="$(arg robot_name)/base_scan"/-->
     <param name="local_costmap/robot_base_frame"             value="$(arg robot_name)/base_link"/>
-    <param name="local_costmap/scan/sensor_frame"             value="$(arg robot_name)/base_scan"/>
-    <param name="global_costmap/robot_base_frame"            value="$(arg robot_name)/base_link"/>
+    <param name="local_costmap/robot_base_frame"              value="$(arg robot_name)/base_footprint"/>
     <param name="global_costmap/global_frame"            value="$(arg robot_name)/map"/>
-    <param name="global_costmap/scan/sensor_frame"             value="$(arg robot_name)/base_scan"/>
+    <!--param name="global_costmap/scan/sensor_frame"             value="$(arg robot_name)/base_scan"/-->
+    <param name="global_costmap/robot_base_frame"            value="$(arg robot_name)/base_link"/>
+    <param name="global_costmap/robot_base_frame"            value="$(arg robot_name)/base_footprint"/>
   </node>
 
   <!-- rviz -->

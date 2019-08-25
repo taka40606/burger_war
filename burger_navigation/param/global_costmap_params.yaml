@@ -1,6 +1,7 @@
 global_costmap:
-  global_frame: map
-  robot_base_frame: /red_bot/base_footprint
+  #global_frame: map
+  #robot_base_frame: base_footprint
+  #robot_base_frame: /red_bot/base_footprint
 
   update_frequency: 10.0 #1
   publish_frequency: 10.0 #1
