@@ -60,16 +60,16 @@ class OurSubscriber(object):
 
 
 def odomCallback(my_pose_msg):
-    global Tx
-    global Ty
-    global th
-    Tx=my_pose_msg.pose.pose.position.x
-    Ty=my_pose_msg.pose.pose.position.y
-    #z=my_pose_msg.pose.pose.orientation.z
-    #w=my_pose_msg.pose.pose.orientation.w
-    #th=2*math.acos(w)*(math.asin(z)/abs(math.asin(z)))
-    th=2*math.acos(my_pose_msg.pose.pose.orientation.w)*(math.asin(my_pose_msg.pose.pose.orientation.z)/abs(math.asin(my_pose_msg.pose.pose.orientation.z)))
-    #print th
+	global Tx
+	global Ty
+	global th
+	Tx=my_pose_msg.pose.pose.position.x
+	Ty=my_pose_msg.pose.pose.position.y
+	#z=my_pose_msg.pose.pose.orientation.z
+	#w=my_pose_msg.pose.pose.orientation.w
+	#th=2*math.acos(w)*(math.asin(z)/abs(math.asin(z)))
+	th=2*math.acos(my_pose_msg.pose.pose.orientation.w)*(math.asin(my_pose_msg.pose.pose.orientation.z)/abs(math.asin(my_pose_msg.pose.pose.orientation.z)))
+	#print th
 
 def enemy_position_calc(image):
 	#hsv変換
@@ -105,17 +105,17 @@ def enemy_position_calc(image):
 		side_tan = (x2-320)/side_standard
 		side_rad = np.arctan(side_tan)
 		side_deg = side_rad*180/np.pi
-		print(x,y)
-		print(height_deg,"heightdeg")
-		print(distance,"mm")
-		print(side_deg,"deg")
+		#print(x,y)
+		#print(height_deg,"heightdeg")
+		#print(distance,"mm")
+		#print(side_deg,"deg")
 
 		return image,distance,side_rad
 	except:
 		distance = 10
 		side_rad = 0
 		return image,distance,side_rad
-		print("ロスト")
+		#print("ロスト")
 
 def enemy_position(Tx,Ty,th,distance,side_rad):
 
@@ -125,15 +125,15 @@ def enemy_position(Tx,Ty,th,distance,side_rad):
 	if enemy_x < -1.45 or enemy_x > 1.45 or enemy_y < -1.45 or enemy_y > 1.45:
 		enemy_x = 0
 		enemy_y = 0
-		print("lost")
-	else:
-		print("x",Tx)
-		print("y",Ty)
-		print("th",th)
-		print("side_rad",side_rad)
-		print("th + side_rad",th + side_rad)
-		print("x_pos",enemy_x)
-		print("y_pos",enemy_y)
+		#print("lost")
+	#else:
+		#print("x",Tx)
+		#print("y",Ty)
+		#print("th",th)
+		#print("side_rad",side_rad)
+		#print("th + side_rad",th + side_rad)
+		#print("x_pos",enemy_x)
+		#print("y_pos",enemy_y)
 	return enemy_x,enemy_y
 
 if __name__ == '__main__':
@@ -161,8 +161,8 @@ if __name__ == '__main__':
 			#cv2.imshow("Cut Image2", prcssed_img)
 			position = enemy_position(Tx,Ty,th,distance,rad)
 			pose=Pose2D()
-			pose.x=position[1]
-			pose.y=-1*position[0]
+			pose.x=-position[1]
+			pose.y=position[0]
 			pose.theta=0
 			pose_pub.publish(pose)
 	while not rospy.is_shutdown():

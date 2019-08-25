@@ -29,7 +29,7 @@ class OnigiriRun(object):
 	def moveCallback(self,point_):
 		self.point = [point_.x, point_.y, math.sin(point_.theta/2), math.cos(point_.theta/2)]
 		self.movebase_status=0
-		print("movebase_status::::%d" % self.movebase_status)
+		#print("movebase_status::::%d" % self.movebase_status)
 		'''
 		while True:
 			if self.movebase_status==2:
@@ -37,7 +37,7 @@ class OnigiriRun(object):
 		'''
 
 	def GoalStatusArrayCallback(self, data):
-		print("movebase_status:%d" % self.movebase_status)
+		#print("movebase_status:%d" % self.movebase_status)
 		status=Int8()
 		status.data=self.movebase_status
 		self.movebase_status_pub.publish(status)
@@ -56,7 +56,7 @@ class OnigiriRun(object):
 			if len(data.status_list) != 0:
 				goalStatus = data.status_list[0]
 				status_id = goalStatus.status
-				print status_id
+				#print status_id
 
 			#moving
 			if self.movebase_status == 1:
@@ -66,7 +66,7 @@ class OnigiriRun(object):
 					self.movebase_status = 4
 				return
 			#stop
-			elif self.movebase_status == 0:
+			elif self.movebase_status == 0 or self.movebase_status == 2:
 				self.pose = PoseStamped()
 				self.pose.pose.position.x = self.point[0]
 				self.pose.pose.position.y = self.point[1]
