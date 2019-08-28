@@ -10,6 +10,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import Pose2D
 from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Vector3
 import math
 import numpy as np
 
@@ -19,11 +20,13 @@ class GetEnemyPose(object):
 		self.pose=Pose2D()
 		self.pose_r=Pose2D()
 		self.pose_g=Pose2D()
+		self.pose_ar=Pose2D()
 		self.NEWtarget=[0]*18
 		self.OLDtarget=[0]*18
 		self.flag=[0]*18
 		self.pose_red_ball=[0.0]*3
 		self.pose_green=[0.0]*3
+		self.poseAR=[0.0]*3
 		self.obstacle=[0.0]*2
 		self.makerPose=[[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],
 		[0.9,0.5,math.pi],[0.0,0.5,0.0],[0.9,-0.5,math.pi],[0.0,-0.5,0.0],
@@ -58,10 +61,21 @@ class GetEnemyPose(object):
 		self.odom_sub = rospy.Subscriber('odom', Odometry, self.odomCallback)
 		self.enemy_pose_green_marker_sub = rospy.Subscriber('green_position', Pose2D, self.enemyPoseGreenCallback)
 		self.enemy_pose_red_ball_sub = rospy.Subscriber('red_ball_position', Pose2D, self.enemyPoseRedBallCallback)
+		self.enemy_pose_ar_sub = rospy.Subscriber('ar_enemybot_pose', Vector3, self.enemyPoseARCallback)
 		self.pose_pub = rospy.Publisher('enemy_pose', Pose2D, queue_size=10)
 		self.scan_sub = rospy.Subscriber('scan', LaserScan, self.scanCallback)
 		self.points_array_pub = rospy.Publisher('points_array', Int32MultiArray, queue_size=10)
 		self.obstacle_direction_pub = rospy.Publisher('obstacle_direction', Float32, queue_size=10)
+
+	def enemyPoseARCallback(self,pose):
+		self.poseAR[0]=pose[0]
+		self.poseAR[1]=pose[1]
+		self.poseAR[2]=pose[2]
+		#print 'enemy_pose_AR'
+		#print pose
+		self.pose_ar.x=self.poseAR.x
+		self.pose_ar.y=self.poseAR.y
+		self.pose_ar.theta=self.poseAR.z
 
 	def enemyPoseGreenCallback(self,pose):
 		self.pose_green[0]=pose.x
@@ -367,6 +381,9 @@ class GetEnemyPose(object):
 		elif not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
 			self.pose_pub.publish(self.pose_r)
 			print "red"
+		elif not (self.pose_ar.x==0 and self.pose_ar.y==0 and self.pose_ar.theta==0):
+			self.pose_pub.publish(self.pose_ar)
+			print "AR"
 		else:
 			self.pose_pub.publish(self.pose)
 

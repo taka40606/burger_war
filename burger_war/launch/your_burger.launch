@@ -24,7 +24,7 @@
     <node pkg="burger_war" type="moveBurger.py" name="moveBurger" output="screen"/>
     <node pkg="burger_war" type="find_marker.py" name="find_marker" output="screen"/>
     <node pkg="burger_war" type="getRedBallPosition.py" name="getRedBallPosition" output="screen"/>
-    <node pkg="burger_war" type="getGreenCirclePosition.py" name="getGreenCirclePosition" output="screen"/>
+    <!--node pkg="burger_war" type="getGreenCirclePosition.py" name="getGreenCirclePosition" output="screen"/-->
     <node pkg="burger_war" type="AR_PoseEstimation_py.py" name="AR_PoseEstimation_py" output="screen"/>    
 
 
