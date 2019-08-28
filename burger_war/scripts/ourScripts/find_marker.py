@@ -10,6 +10,8 @@ from sensor_msgs.msg import CompressedImage
 import time
 import copy
 import math
+from aruco_msgs.msg import MarkerArray
+
 
 # グローバル変数
 ## Camera Image
@@ -171,19 +173,34 @@ def shoot_marker(src_img, img_pub):		# マーカー画像, おpub先
 if __name__ == '__main__':
 	rospy.init_node("find_marker")
 	OurSubscriber()			# センサ情報おsub用
-	prcssimg_pub = rospy.Publisher('image_prcssed', Image, queue_size=1)	# arucoサーバへマーカ画像をおpubする用
+	prcssimg_pub = rospy.Publisher('image_prcssed', Image, queue_size=1)	# aruco サーバへマーカ画像をおpubする用
+	markerid_pub = rospy.Publisher('target_id', MarkerArray, queue_size=1)	# cv2.aruco.detectMarkers で取得したidをおpubする用
+
+	our_cvbridge = CvBridge()
 
 	prcssed_img = []			# マーカー認識位置重ね描き後のカメラ画像
 	cut_img = []				# マーカー切り出し画像
 	cut_img_resize = []			# リサイズ後のマーカー切り出し画像
 	img_switch_counter = 0		# マーカを複数切り出すので描画やおpubの切り替えに使用
+	marker_switch_counter = 0	# マーカ複数描画やおpubの切り替えに使用
 
 	start_time = time.time()				# 画像描画・おpub用タイマー
+	"""
 	cv2.namedWindow("Camera Image")			# カメラ画像（マーカ位置重ね書き後）描画用窓
-	#cv2.namedWindow("Cut Image_")			# 切り出し画像（リサイズ前）描画用窓
+	cv2.namedWindow("Cut Image_")			# 切り出し画像（リサイズ前）描画用窓
 	cv2.namedWindow("Cut Image Resized")	# 切り出し画像（リサイズ後）描画用窓
+	cv2.namedWindow("Marker Image")			# マーカー画像描画用窓
+	"""
+	
+	# cv2.aruco.detectMarkers 用辞書を用意
+	aruco_dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_ARUCO_ORIGINAL)
+	gotten_targetid_msg = MarkerArray()
 
-	while True:
+	marker_img_size = 35	# 35pxx35px (7マスx7マス --> 1マス5px)
+
+	loop_timer = rospy.Rate(30)     # ループの時間調整用　30[Hz]
+
+	while not rospy.is_shutdown():
 		now_time = time.time()
 		elapsed_time = now_time - start_time
 		if elapsed_time > 0.033:	# fps = 30 （のつもり）
@@ -194,12 +211,11 @@ if __name__ == '__main__':
 				cv2.imshow("Camera Image", prcssed_img)
 			# 切り出し画像（リサイズ前）描画
 			if len(cut_img) > 0:
-
 				if img_switch_counter < len(cut_img):
 					if len(cut_img[img_switch_counter]) > 0:
 						if cut_img[img_switch_counter].shape[0] > 0 and cut_img[img_switch_counter].shape[1] > 0:
 							cut_img_rgb = cv2.cvtColor(cut_img[img_switch_counter],cv2.COLOR_GRAY2RGB)
-							cv2.imshow("Cut Image_", cut_img_rgb)
+				#			cv2.imshow("Cut Image_", cut_img_rgb)
 				#			prcssimg_msg = our_cvbridge.cv2_to_imgmsg(cut_img_rgb, encoding="bgr8")
 				#			prcssimg_pub.publish(prcssimg_msg)
 			# 切り出し画像（リサイズ後）描画 & おpub
@@ -208,12 +224,36 @@ if __name__ == '__main__':
 					if len(cut_img_resize[img_switch_counter]) > 0:
 						if cut_img_resize[img_switch_counter].shape[0] > 0 and cut_img_resize[img_switch_counter].shape[1] > 0:
 							cut_img_resize_rgb = cv2.cvtColor(cut_img_resize[img_switch_counter],cv2.COLOR_GRAY2RGB)
-							cv2.imshow("Cut Image Resized", cut_img_resize_rgb)
+				#			cv2.imshow("Cut Image Resized", cut_img_resize_rgb)
 							shoot_marker(cut_img_resize_rgb, prcssimg_pub)
 					img_switch_counter += 1
 				else :
 					img_switch_counter = 0
+			
+			if len(burger_cv_cam_img) > 0:
+				marker_corners, marker_ids, rejectedImgPoints = cv2.aruco.detectMarkers(burger_cv_cam_img, aruco_dictionary)
+				if marker_ids != None:
+					if marker_switch_counter < len(marker_ids):
+						marker_img = np.full((marker_img_size * 3, marker_img_size * 3), 255, dtype=np.uint8)
+						marker_img[marker_img_size : marker_img_size * 2, marker_img_size : marker_img_size * 2] = cv2.aruco.drawMarker(aruco_dictionary, marker_ids[marker_switch_counter][0], marker_img_size)
+						marker_img_bgr = cv2.cvtColor(marker_img, cv2.COLOR_GRAY2BGR)						
+				#		cv2.imshow("Marker Image", marker_img_bgr)
+						prcssimg_msg = our_cvbridge.cv2_to_imgmsg(marker_img_bgr, encoding="bgr8")
+						prcssimg_pub.publish(prcssimg_msg)
+						marker_switch_counter += 1
+					else :
+						marker_switch_counter = 0
+					"""
+					for gotten_marker_id in marker_ids:
+						marker_img = np.full((marker_img_size * 3, marker_img_size * 3), 255, dtype=np.uint8)
+						marker_img[marker_img_size : marker_img_size * 2, marker_img_size : marker_img_size * 2] = cv2.aruco.drawMarker(aruco_dictionary, gotten_marker_id[0], marker_img_size)
+						marker_img_bgr = cv2.cvtColor(marker_img, cv2.COLOR_GRAY2BGR)
+						#cv2.imshow("Marker Image", marker_img_bgr)
+						prcssimg_msg = our_cvbridge.cv2_to_imgmsg(marker_img_bgr, encoding="bgr8")
+						prcssimg_pub.publish(prcssimg_msg)
+					"""
 
-			cv2.waitKey(1)
+		cv2.waitKey(1)
+		loop_timer.sleep()
 
 

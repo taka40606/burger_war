@@ -4,6 +4,7 @@ import re
 import rospy
 from nav_msgs.msg import OccupancyGrid
 from std_msgs.msg import String
+from std_msgs.msg import Float32
 from std_msgs.msg import Int32MultiArray,MultiArrayLayout,MultiArrayDimension
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
@@ -14,23 +15,14 @@ import numpy as np
 
 class GetEnemyPose(object):
 	def __init__(self):
-		self.warState_sub = rospy.Subscriber('war_state', String, self.warStateCallback) 
-		self.map_sub = rospy.Subscriber('map', OccupancyGrid, self.mapCallback)
-		self.odom_sub = rospy.Subscriber('odom', Odometry, self.odomCallback)
-		self.enemy_pose_red_ball_sub = rospy.Subscriber('red_ball_position', Pose2D, self.enemyPoseRedBallCallback)
-		self.pose_pub = rospy.Publisher('enemy_pose', Pose2D, queue_size=10)
-		#self.pose_p_pub = rospy.Publisher('enemy_pose_p', Pose2D, queue_size=10)
-		self.scan_sub = rospy.Subscriber('scan', LaserScan, self.scanCallback)
-		self.points_array_pub = rospy.Publisher('points_array', Int32MultiArray, queue_size=10)
 		self.pose_p=Pose2D()
 		self.pose=Pose2D()
 		self.pose_r=Pose2D()
-
 		self.NEWtarget=[0]*18
 		self.OLDtarget=[0]*18
 		self.flag=[0]*18
 		self.pose_red_ball=[0.0]*3
-
+		self.obstacle=[0.0]*2
 		self.rmakerPose=[[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],
 		[0.9,0.5,math.pi],[0.0,0.5,0.0],[0.9,-0.5,math.pi],[0.0,-0.5,0.0],
 		[0.0,0.5,math.pi],[-0.9,0.5,0.0],[0.0,-0.5,math.pi],[-0.9,-0.5,0.0],
@@ -52,13 +44,21 @@ class GetEnemyPose(object):
 		self.enemyPose_p=[0.0]*2
 		self.myPoint=0
 		self.enemyPoint=0
+		self.warState_sub = rospy.Subscriber('war_state', String, self.warStateCallback) 
+		self.map_sub = rospy.Subscriber('map', OccupancyGrid, self.mapCallback)
+		self.odom_sub = rospy.Subscriber('odom', Odometry, self.odomCallback)
+		self.enemy_pose_red_ball_sub = rospy.Subscriber('red_ball_position', Pose2D, self.enemyPoseRedBallCallback)
+		self.pose_pub = rospy.Publisher('enemy_pose', Pose2D, queue_size=10)
+		self.scan_sub = rospy.Subscriber('scan', LaserScan, self.scanCallback)
+		self.points_array_pub = rospy.Publisher('points_array', Int32MultiArray, queue_size=10)
+		self.obstacle_direction_pub = rospy.Publisher('obstacle_direction', Float32, queue_size=10)
 
 	def enemyPoseRedBallCallback(self,pose):
 		self.pose_red_ball[0]=pose.x
 		self.pose_red_ball[1]=pose.y
 		self.pose_red_ball[2]=pose.theta
-		print 'enemy_pose_red_ball'
-		print pose
+		#print 'enemy_pose_red_ball'
+		#print pose
 		self.pose_r.x=self.pose_red_ball[0]
 		self.pose_r.y=self.pose_red_ball[1]
 		self.pose_r.theta=0.0
@@ -168,10 +168,49 @@ class GetEnemyPose(object):
 		#print self.th
 
 	def scanCallback(self,scan):
+		back_direction=0.0
+		tmp_direction=100.0
+		ave_range=[0.0]*10
+		for i in range(360):
+			ave_range[int(i/36)]+=scan.ranges[i]
+		for i in range(10):
+			ave_range[i]=ave_range[i]/36
+		#print "obstacle--------------------------"
+		#print ave_range
+		for i in range(10):
+			#print (i*36+18)*math.pi/180
+			if (i<5 and ave_range[i]>0.5 and ave_range[i+5]<0.20) or (i>=5 and ave_range[i]>0.5 and ave_range[i-5]<0.20):
+				if math.pi<(i*36+18)*math.pi/180 and abs(back_direction)<tmp_direction:
+					back_direction=(i*36+18)*math.pi/180-2*math.pi
+					tmp_direction=abs(back_direction)
+					#print "excape"
+					#print i
+					#print back_direction
+				elif -math.pi>(i*36+18)*math.pi/180 and abs(back_direction)<tmp_direction:
+					back_direction=(i*36+18)*math.pi/180+2*math.pi
+					tmp_direction=abs(back_direction)
+					#print "excape"
+					#print i
+					#print back_direction
+				elif abs(back_direction)<tmp_direction:
+					back_direction=(i*36+18)*math.pi/180
+					tmp_direction=abs(back_direction)
+					#print "excape"
+					#print i
+					#print back_direction
+		#print "back_direction"
+		#print back_direction
+		obstacle_direction=Float32()
+		obstacle_direction= back_direction
+		self.obstacle_direction_pub.publish(obstacle_direction)
+		#print "obstacle_direction"
+		#print obstacle_direction
+		#print "obstacle--------------------------"
 		points=np.array([[0.0]*360,[0.0]*360])
 		rot=np.array([[math.cos(math.pi/4),math.sin(math.pi/4)],[-1*math.sin(math.pi/4),math.cos(math.pi/4)]])
 		rot2=np.array([[math.cos(-1*math.pi/4),math.sin(-1*math.pi/4)],[-1*math.sin(-1*math.pi/4),math.cos(-1*math.pi/4)]])
 		rot3=np.array([[math.cos(self.th),math.sin(self.th)],[-1*math.sin(self.th),math.cos(self.th)]])
+		#print "pointcloud------------------------------------------------------"
 		for i in range(360):
 			points[0][i]=scan.ranges[i]*math.sin(2*math.pi*i/360)
 			points[1][i]=scan.ranges[i]*math.cos(2*math.pi*i/360)
@@ -179,17 +218,35 @@ class GetEnemyPose(object):
 		for i in range(360):
 			points[0][i]+=self.Ty
 			points[1][i]+=self.Tx
-
+			'''
+			if ((0.235<points[0][i]<0.735 and 0.305<points[1][i]<0.805) or
+				(-0.735<points[0][i]<-0.235 and -0.755<points[1][i]<-0.305) or
+				(0.23<points[0][i]<0.735 and -0.755<points[1][i]<-0.305) or
+				(-0.735<points[0][i]<-0.235 and 0.305<points[1][i]<0.755) or
+				(-0.325<points[0][i]<0.325 and -0.325<points[1][i]<0.325)):
+			if ((0.23<points[0][i]<0.83 and 0.255<points[1][i]<0.805) or
+				(-0.83<points[0][i]<-0.23 and -0.805<points[1][i]<-0.255) or
+				(0.23<points[0][i]<0.83 and -0.805<points[1][i]<-0.255) or
+				(-0.83<points[0][i]<-0.23 and 0.255<points[1][i]<0.805) or
+				(-0.375<points[0][i]<0.375 and -0.375<points[1][i]<0.375)):
 			if ((0.33<points[0][i]<0.73 and 0.355<points[1][i]<0.705) or
 				(-0.73<points[0][i]<-0.33 and -0.705<points[1][i]<-0.355) or
 				(0.33<points[0][i]<0.73 and -0.705<points[1][i]<-0.355) or
 				(-0.73<points[0][i]<-0.33 and 0.355<points[1][i]<0.705) or
 				(-0.275<points[0][i]<0.275 and -0.275<points[1][i]<0.275)):
+			'''
+			if ((0.235<points[0][i]<0.735 and 0.305<points[1][i]<0.805) or
+				(-0.735<points[0][i]<-0.235 and -0.755<points[1][i]<-0.305) or
+				(0.23<points[0][i]<0.735 and -0.755<points[1][i]<-0.305) or
+				(-0.735<points[0][i]<-0.235 and 0.305<points[1][i]<0.755) or
+				(-0.325<points[0][i]<0.325 and -0.325<points[1][i]<0.325)):
 					points[0][i]=0.0
 					points[1][i]=0.0
 		points=np.dot(rot,points)
 		for i in range(360):
-			if (1.1<points[0][i] or points[0][i]<-1.1 or 1.1<points[1][i] or points[1][i]<-1.1):
+			#if (1.0<points[0][i] or points[0][i]<-1.0 or 1.0<points[1][i] or points[1][i]<-1.0):
+			#if (1.1<points[0][i] or points[0][i]<-1.1 or 1.1<points[1][i] or points[1][i]<-1.1):
+			if (1.05<points[0][i] or points[0][i]<-1.05 or 1.05<points[1][i] or points[1][i]<-1.05):
 				points[0][i]=0.0
 				points[1][i]=0.0
 		points=np.dot(rot2,points)
@@ -236,7 +293,7 @@ class GetEnemyPose(object):
 			#print "count:"
 			#print count
 			if maxL < 0.15:
-				if maxL>0.001 and count!=0 and not (-0.001<ave[0] <0.001 and -0.001<ave[1]<0.001):
+				if maxL>0.001 and count>3 and not (-0.001<ave[0] <0.001 and -0.001<ave[1]<0.001):
 					#print maxL
 					#print ave
 					#print "Fin"
@@ -249,9 +306,17 @@ class GetEnemyPose(object):
 					self.pose_p.theta=0.0
 				#self.pose_pub.publish(self.pose_p)
 				break
+		#print "pointcloud------------------------------------------------------"
 		self.integratePoses()
 
 	def integratePoses(self):
+		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
+			self.pose_pub.publish(self.pose_p)
+		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
+			self.pose_pub.publish(self.pose)
+		else:
+			self.pose_pub.publish(self.pose)
+		'''
 		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
 		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
@@ -260,7 +325,7 @@ class GetEnemyPose(object):
 			self.pose_pub.publish(self.pose_r)
 		else:
 			self.pose_pub.publish(self.pose)
-
+		'''
 if __name__ == '__main__':
 	rospy.init_node('get_enemy_pose', anonymous=True)
 	#warState_sub = rospy.Subscriber('war_state', String, warStateCallback) 

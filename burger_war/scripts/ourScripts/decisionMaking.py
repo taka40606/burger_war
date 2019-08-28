@@ -3,6 +3,8 @@
 # license removed for brevity
 import rospy
 from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Float32
 from std_msgs.msg import Int8
 from nav_msgs.msg import Odometry
 import math
@@ -10,6 +12,7 @@ import time
 from std_msgs.msg import Int32MultiArray,MultiArrayLayout,MultiArrayDimension
 from move_base_msgs.msg import MoveBaseActionResult
 from geometry_msgs.msg import Twist
+import is_field_out as fo #katano
 
 status=10
 enemy_x=0.0
@@ -26,13 +29,15 @@ my_position_num_to=0
 enemy_position_num=2 #my start:0 right:1 enemy start:2 left:3
 position=[[-1.3,0,0],[0.0,-1.3,math.pi/2],[1.3,0.0,math.pi],[0.0,1.3,-1*math.pi/2],
 [-0.72051407,-0.74551407,0.0],[0.72051407,-0.74551407,0.0],[0.72051407,0.74551407,0.0],[-0.72051407,0.74551407,0.0]]
+#sniper_pos = [[-1.3,0,0],[0.0,-1.3,math.pi/2],[1.3,0.0,math.pi],[0.0,1.3,-math.pi/2]]
 sniper_pos = [[-1.0,0,0],[0.0,-1.0,math.pi/2],[1.0,0.0,math.pi],[0.0,1.0,-math.pi/2]]
-way_pos = [[0.0,-1.0,-math.pi/2],[1.0,0.0,0.0],[0.0,1.0,math.pi/2],[-1.0,0,math.pi]]
-#way_pos = [[-0.9,-0.4,-math.pi / 4.0],[0.9,-0.4,math.pi / 4.0],[0.9,0.4,math.pi * 5.0 / 4.0],[-0.9,0.4,-math.pi * 5.0 / 4.0]]
-#way_pos = [[-0.72051407,-0.74551407,-math.pi / 4.0],[0.72051407,-0.74551407,math.pi / 4.0],[0.72051407,0.74551407,math.pi * 5.0 / 4.0],[-0.72051407,0.74551407,-math.pi * 5.0 / 4.0]]
+#way_pos = [[0.0,-1.0,-math.pi/2],[1.0,0.0,0.0],[0.0,1.0,math.pi/2],[-1.0,0,math.pi]]
+##way_pos = [[-0.9,-0.4,-math.pi / 4.0],[0.9,-0.4,math.pi / 4.0],[0.9,0.4,math.pi * 5.0 / 4.0],[-0.9,0.4,-math.pi * 5.0 / 4.0]]
+##way_pos = [[-0.72051407,-0.74551407,-math.pi / 4.0],[0.72051407,-0.74551407,math.pi / 4.0],[0.72051407,0.74551407,math.pi * 5.0 / 4.0],[-0.72051407,0.74551407,-math.pi * 5.0 / 4.0]]
 my_point=0
 enemy_point=0
 goal_reached_flg = False    # ゴールに到達したかどうかのフラグ
+back_direction=0.0
 
 def movebaseStatusCallback(movebase_status):
     global status
@@ -47,8 +52,8 @@ def enemyPoseCallback(pose):
     enemy_x=pose.x
     enemy_y=pose.y
     enemy_th=pose.theta
-    print 'enemy_pose'
-    print pose
+    #print 'enemy_pose'
+    #print pose
     #print status
     enemy_position_num=checkPosition(pose.x,pose.y)[0]
     print enemy_position_num
@@ -77,9 +82,10 @@ def odomCallback(my_pose_msg):
     #print my_position_num
     #print my_position_num2
 
-def chechMVresultCallback(move_result_msg):
+def checkMVresultCallback(move_result_msg):
     global goal_reached_flg
-
+    print "------------------move_result_msg.status.text--------------------------"
+    print move_result_msg.status.text
     if move_result_msg.status.text == "Goal reached.":
         goal_reached_flg = True
     #else:
@@ -124,6 +130,53 @@ def checkPosition(x,y):
     #print position_num2
     return [position_num,position_num2]
 
+def obstacleDirectionCallback(direction_msg):
+    global back_direction
+    print "direction_msg"
+    print direction_msg.data
+    back_direction=direction_msg.data
+
+def recoveryBehavior():
+    twist=Twist()
+    global back_direction
+    global th
+    print "back_direction"
+    print back_direction
+    print "th"
+    print th
+    turn_speed=1.35
+    th_tmp=th
+    back_direction_tmp=back_direction
+    while abs(th_tmp-th)<abs(back_direction_tmp):
+        twist.angular.z=turn_speed*back_direction_tmp/abs(back_direction_tmp)
+        cmd_vel_pub.publish(twist)
+        #print th
+        r.sleep()
+    '''
+        if back_direction<-math.pi/10:
+            twist.angular.z=-0.1
+        elif back_direction>math.pi/10:
+            twist.angular.z=0.1
+        elif -math.pi/10<=back_direction<=math.pi/10:
+            twist.angular.z=0.0
+        #print twist
+    '''
+    twist.angular.z=0.0
+    cmd_vel_pub.publish(twist)
+    r.sleep()
+    twist.linear.x=0.2
+    cmd_vel_pub.publish(twist)
+    Tx_old=Tx
+    Ty_old=Ty
+    while 0.2>math.sqrt((Tx-Tx_old)*(Tx-Tx_old)+(Ty-Ty_old)*(Ty-Ty_old)):
+        r.sleep()
+    twist.linear.x=0.0
+    cmd_vel_pub.publish(twist)
+    #print th_tmp
+    #print th
+    #print th_tmp-th
+    #print back_direction_tmp
+    #print "ssssssssssssssssssstoppppppppppppppppppppppp"
 
 # 敵との距離を計算
 def getEnemyDistance(my_pos, enemy_pos):
@@ -165,6 +218,18 @@ def checkEnemy(enemy_pos):
     else:
         return True
 
+def goBack():
+    global Tx, Ty, th
+    L=0.15
+    while fo.isFieldOut(Tx-L*math.cos(th), Ty-L*math.sin(th), 0.12) :
+        #print "L"
+        #print L
+        x=Tx-L*math.cos(th)
+        y=Ty-L*math.sin(th)
+        #print x
+        #print y
+        InputPose(x,y,0.0)
+        L=L-0.01
 
 if __name__ == '__main__':
     rospy.init_node('decision_making', anonymous=True)
@@ -173,8 +238,11 @@ if __name__ == '__main__':
     enemy_pose_sub = rospy.Subscriber('enemy_pose', Pose2D, enemyPoseCallback)
     points_array_sub = rospy.Subscriber('points_array', Int32MultiArray, pointsArrayPoseCallback)
     odom_sub = rospy.Subscriber('odom', Odometry, odomCallback)
-    check_move_result_sub = rospy.Subscriber('move_base/result', MoveBaseActionResult, chechMVresultCallback)
-    vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1)
+    check_move_result_sub = rospy.Subscriber('move_base/result', MoveBaseActionResult, checkMVresultCallback)
+    cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+
+    obstacle_direction_sub = rospy.Subscriber('obstacle_direction', Float32, obstacleDirectionCallback)
+
     
     #r = rospy.Rate(10) # 10hz
     Time=0
@@ -197,11 +265,15 @@ if __name__ == '__main__':
 
     global goal_reached_flg
     operation_sequence = "Initial Move"
+    #operation_sequence = "Okazu Sniper"
     start_time = time.time()
-    swing_time = 5.0
+    swing_time = 7.0
+    enemy_distance_threshold = 2.0  #0.6      # 敵からの距離のしきい値
+    swing_ang = math.pi/4.0             # 首振り角度　±θ
     zone_num = 4    # フィールドを4つに分けてます　スタート位置が0で左回り
     my_zone_no = 0
     next_zone_no = 0
+    initial_motion_flg = False  # 最初の首振り動作が終わっているかのフラグ
     onway_flg = False   # ウェイポイントに向かっているかのフラグ
     topoint_flg = False # 狙撃ポイントへ向かっているかのフラグ
     enemy_twist = Twist()   # 敵を見続ける用の速度
@@ -214,7 +286,7 @@ if __name__ == '__main__':
 
     loop_timer = rospy.Rate(10)     # ループの時間調整用　10[Hz]
 
-    #time.sleep(2)
+
 
     while not rospy.is_shutdown():
 
@@ -222,109 +294,95 @@ if __name__ == '__main__':
 
         if operation_sequence == "Initial Move":    # 最初の移動
             if not goal_reached_flg:
+                my_zone_no = (checkPosition(Tx,Ty))[0]
                 InputPose(sniper_pos[my_zone_no][0], sniper_pos[my_zone_no][1], sniper_pos[my_zone_no][2])
             else:
                 goal_reached_flg = False
                 operation_sequence = "Okazu Sniper"
                 start_time = time.time()
-
-        elif operation_sequence == "Enemy Sniper":  # 敵が居たら
-            
-            enemy_distance = getEnemyDistance([Tx, Ty, th], [enemy_x, enemy_y, enemy_th])
-            print enemy_distance
-            
-            if not checkEnemy([enemy_x, enemy_y, enemy_th]) or enemy_distance > 0.6:    # ロストしたら or 離れていたら次の狙撃位置へ
-                my_zone_no = (checkPosition(Tx,Ty))[0]
-                print "My Zone: " + str(my_zone_no)
-                if my_zone_no < zone_num - 1:   # とりあえず右回りにしてます
-                    next_zone_no = my_zone_no + 1
+        elif initial_motion_flg and checkEnemy([enemy_x, enemy_y, enemy_th]) and getEnemyDistance([Tx, Ty, th], [enemy_x, enemy_y, enemy_th]) < enemy_distance_threshold:  #敵が居て、かつ近かったら
+            print "!!!!!!!! Enemy Sniper !!!!!!!!"
+            my_zone_no = (checkPosition(Tx,Ty))[0]
+            enemy_look_ang = lookatEnemyAng([Tx, Ty, th], [enemy_x, enemy_y, enemy_th])
+            InputPose(Tx, Ty, enemy_look_ang)
+        else:   # 敵が居ない or 距離が遠い
+            if operation_sequence == "Moving to Next Point":      # 次のポイントへ移動
+                if topoint_flg:               # 狙撃ポイントへ
+                    #print "My Zone: " + str(my_zone_no)
+                    #print "Next Zone: " + str(next_zone_no)
+                    if not goal_reached_flg:
+                        my_zone_no = (checkPosition(Tx,Ty))[0]
+                        InputPose(sniper_pos[next_zone_no][0], sniper_pos[next_zone_no][1], sniper_pos[next_zone_no][2])
+                    else:       # ポイントに到着したら
+                        goal_reached_flg = False
+                        topoint_flg = False
+                        operation_sequence = "Okazu Sniper"
+                        start_time = time.time()
                 else:
-                    next_zone_no = 0
-                #onway_flg = True
-                topoint_flg = True
-                goal_reached_flg = False
-                operation_sequence = "Moving to Next Point"
-            else:   # 敵が見えてるなら見る
-                enemy_look_ang = lookatEnemyAng([Tx, Ty, th], [enemy_x, enemy_y, enemy_th])
-                InputPose(Tx, Ty, enemy_look_ang)
-
-            """
-            if not checkEnemy([enemy_x, enemy_y, enemy_th]):    # ロストしたら
-                continue
-            elif enemy_distance < 600:   # 近距離なら
-                enemy_look_ang = lookatEnemyAng([Tx, Ty, th], [enemy_x, enemy_y, enemy_th])
-                InputPose(Tx, Ty, enemy_look_ang)
-            elif enemy_distance < 1200:     # 中距離なら
-                continue
-            else:    # 遠距離なら
-                continue
-            """
-
-        elif operation_sequence == "Moving to Next Point":      # 次のポイントへ移動
-            
-            if checkEnemy([enemy_x, enemy_y, enemy_th]):  #敵が居たら
-                goal_reached_flg = False
-                topoint_flg = False
-                operation_sequence = "Enemy Sniper"
-                start_time = time.time()
-            elif topoint_flg:               # 狙撃ポイントへ
-                if not goal_reached_flg:
-                    InputPose(sniper_pos[next_zone_no][0], sniper_pos[next_zone_no][1], sniper_pos[next_zone_no][2])
-                else:       # ポイントに到着したら
                     goal_reached_flg = False
+                    #onway_flg = False
                     topoint_flg = False
                     operation_sequence = "Okazu Sniper"
                     start_time = time.time()
-            """
-            if checkEnemy([enemy_x, enemy_y, enemy_th]):  #敵が居たら
-                goal_reached_flg = False
-                onway_flg = False
-                topoint_flg = False
-                operation_sequence = "Enemy Sniper"
-                start_time = time.time()
-            elif onway_flg:       # ウェイポイント中継
-                if not goal_reached_flg:
-                    if next_zone_no - my_zone_no == 1 or next_zone_no - my_zone_no == -3:       # 右回りなら
-                        InputPose(way_pos[my_zone_no][0], way_pos[my_zone_no][1], way_pos[my_zone_no][2])
-                    else:                                                                       # 左回りなら
-                        InputPose(way_pos[my_zone_no][0], way_pos[my_zone_no][1], math.pi + way_pos[my_zone_no][2])
-                else:
+                """
+                if checkEnemy([enemy_x, enemy_y, enemy_th]):  #敵が居たら
                     goal_reached_flg = False
                     onway_flg = False
-                    topoint_flg = True
-            elif topoint_flg:               # 狙撃ポイントへ
-                if not goal_reached_flg:
-                    InputPose(sniper_pos[next_zone_no][0], sniper_pos[next_zone_no][1], sniper_pos[next_zone_no][2])
-                else:       # ポイントに到着したら
-                    goal_reached_flg = False
                     topoint_flg = False
-                    operation_sequence = "Okazu Sniper"
+                    operation_sequence = "Enemy Sniper"
                     start_time = time.time()
+                elif onway_flg:       # ウェイポイント中継
+                    if not goal_reached_flg:
+                        if next_zone_no - my_zone_no == 1 or next_zone_no - my_zone_no == -3:       # 右回りなら
+                            InputPose(way_pos[my_zone_no][0], way_pos[my_zone_no][1], way_pos[my_zone_no][2])
+                        else:                                                                       # 左回りなら
+                            InputPose(way_pos[my_zone_no][0], way_pos[my_zone_no][1], math.pi + way_pos[my_zone_no][2])
+                    else:
+                        goal_reached_flg = False
+                        onway_flg = False
+                        topoint_flg = True
+                elif topoint_flg:               # 狙撃ポイントへ
+                    if not goal_reached_flg:
+                        InputPose(sniper_pos[next_zone_no][0], sniper_pos[next_zone_no][1], sniper_pos[next_zone_no][2])
+                    else:       # ポイントに到着したら
+                        goal_reached_flg = False
+                        topoint_flg = False
+                        operation_sequence = "Okazu Sniper"
+                        start_time = time.time()
+                """
+
+            elif operation_sequence == "Okazu Sniper":  # 首を振っておかずをShoot!
+                now_time = time.time()
+                elapsed_time = now_time - start_time
+                if elapsed_time > swing_time:  # 一定時間首振り
+                    start_time = now_time
+                    my_zone_no = (checkPosition(Tx,Ty))[0]
+                    #print "My Zone: " + str(my_zone_no)
+                    if my_zone_no < zone_num - 1:   # とりあえず右回りにしてます
+                        next_zone_no = my_zone_no + 1
+                    else:
+                        next_zone_no = 0
+                    initial_motion_flg = True
+                    #onway_flg = True
+                    topoint_flg = True
+                    goal_reached_flg = False
+                    operation_sequence = "Moving to Next Point"
+                else:
+                    my_zone_no = (checkPosition(Tx,Ty))[0]
+                    swingBurger([Tx, Ty, th], sniper_pos[my_zone_no], point_pub, swing_ang)
+                    
+            """
+            else:
+                goal_reached_flg = False
+                #onway_flg = False
+                topoint_flg = False
+                operation_sequence = "Okazu Sniper"
+                start_time = time.time()
             """
 
-        elif operation_sequence == "Okazu Sniper":  # 首を振っておかずをShoot!
-            now_time = time.time()
-            elapsed_time = now_time - start_time
-            if checkEnemy([enemy_x, enemy_y, enemy_th]):  #敵が居たら
-                goal_reached_flg = False
-                operation_sequence = "Enemy Sniper"
-                start_time = time.time()
-            elif elapsed_time > swing_time:  # 一定時間首振り
-                start_time = now_time
-                my_zone_no = (checkPosition(Tx,Ty))[0]
-                print "My Zone: " + str(my_zone_no)
-                if my_zone_no < zone_num - 1:   # とりあえず右回りにしてます
-                    next_zone_no = my_zone_no + 1
-                else:
-                    next_zone_no = 0
-                #onway_flg = True
-                topoint_flg = True
-                goal_reached_flg = False
-                operation_sequence = "Moving to Next Point"
-            else:
-                swingBurger([Tx, Ty, th], sniper_pos[0], point_pub, math.pi/4.0)#math.pi/6.0)
-
         loop_timer.sleep()
+
+
 
 """
     InputPose(-1.3,0.0,10.0*math.pi/180) # 5deg
@@ -445,6 +503,6 @@ if __name__ == '__main__':
         print my_position_num_to
         print " "
         #InputPose(position[my_position_num_to][0],position[my_position_num_to][1],position[my_position_num_to][2])
-      r.sleep()
+    r.sleep()
 
 """
