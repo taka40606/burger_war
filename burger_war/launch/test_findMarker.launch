@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_name" default=""/> <!-- robot_name for use NAMESPACE -->
+  <arg name="side" default="b"/> <!-- "b" = blue side, "r" = red side  -->
+  <!--arg name="side" default="r"/-->
+
+    <!-- You can change control program  -->
+
+
+
+    <!-- sample program node -->
+    <!--include file="$(find burger_navigation)/launch/burger_navigation.launch">
+      <arg name="robot_name" value="$(arg robot_name)" />
+      <arg name="side" value="$(arg side)" />
+    </include-->
+    <!-- ar reader -->
+    <node pkg="aruco_ros" type="marker_publisher" name="our_aruco_marker_publisher">
+      <param name="use_camera_info" value="False"/>
+      <remap from="/image" to="image_prcssed" />
+      <remap from="our_aruco_marker_publisher/markers" to="target_id" />
+    </node>
+    <!--node pkg="burger_war" type="decisionMaking.py" name="decisionMaking" output="screen"/>
+    <node pkg="burger_war" type="getEnemyPose.py" name="getEnemyPose" output="screen"/>
+    <node pkg="burger_war" type="moveBurger.py" name="moveBurger" output="screen"/-->
+    <node pkg="burger_war" type="find_marker.py" name="find_marker" output="screen"/>
+    <!--node pkg="burger_war" type="getRedBallPosition.py" name="getRedBallPosition" output="screen"/-->
+    <include file="$(find burger_war)/launch/burger_teleop.launch"/>
+
+    <!-- END sample program node -->
+
+
+
+    <!-- End of your space  -->
+</launch>
+
