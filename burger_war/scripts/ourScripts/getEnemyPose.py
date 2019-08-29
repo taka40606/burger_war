@@ -205,7 +205,7 @@ class GetEnemyPose(object):
 		#w=my_pose_msg.pose.pose.orientation.w
 		#th=2*math.acos(w)*(math.asin(z)/abs(math.asin(z)))
 		self.th=2*math.acos(my_pose_msg.pose.pose.orientation.w)*(math.asin(my_pose_msg.pose.pose.orientation.z)/abs(math.asin(my_pose_msg.pose.pose.orientation.z)))-math.pi/2
-		print self.th
+		#print self.th
 
 	def scanCallback(self,scan):
 		back_direction=0.0
@@ -338,15 +338,15 @@ class GetEnemyPose(object):
 			#print ave
 			#print "count:"
 			#print count
-			print "points"
-			print points
+			#print "points"
+			#print points
 			if maxL < 0.15:
 				if maxL>0.001 and count>3 and not (-0.001<ave[0] <0.001 and -0.001<ave[1]<0.001):
-					print "maxL"
-					print maxL
-					print "ave"
-					print ave
-					print "enemy!!!!!!!!!!!!!!!!!!!!!!"
+					#print "maxL"
+					#print maxL
+					#print "ave"
+					#print ave
+					#print "enemy!!!!!!!!!!!!!!!!!!!!!!"
 					self.pose_p.x=ave[0]
 					self.pose_p.y=ave[1]
 					self.pose_p.theta=1000.0
@@ -371,19 +371,19 @@ class GetEnemyPose(object):
 		'''
 		if not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
 			self.pose_pub.publish(self.pose_g)
-			print "green"
+			#print "green"
 		elif not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
-			print "pointcloud"
+			#print "pointcloud"
 		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
 			self.pose_pub.publish(self.pose)
-			print "maker"
+			#print "maker"
 		elif not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
 			self.pose_pub.publish(self.pose_r)
-			print "red"
+			#print "red"
 		elif not (self.pose_ar.x==0 and self.pose_ar.y==0 and self.pose_ar.theta==0):
 			self.pose_pub.publish(self.pose_ar)
-			print "AR"
+			#print "AR"
 		else:
 			self.pose_pub.publish(self.pose)
 
