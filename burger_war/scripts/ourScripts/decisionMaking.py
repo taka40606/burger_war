@@ -209,7 +209,8 @@ def lookaEnemytTurnVel(my_pos, enemy_pos):
 # 敵のいる角度
 def lookatEnemyAng(my_pos, enemy_pos):
     if enemy_pos[0] - my_pos[0] != 0:
-        enemy_ang = math.atan( (enemy_pos[1] - my_pos[1]) / (enemy_pos[0] - my_pos[0]) )
+        #enemy_ang = math.atan( (enemy_pos[1] - my_pos[1]) / (enemy_pos[0] - my_pos[0]) )
+        enemy_ang = math.atan2( enemy_pos[1] - my_pos[1], enemy_pos[0] - my_pos[0] )
 
     return enemy_ang
 
@@ -288,7 +289,7 @@ if __name__ == '__main__':
     enemy_twist.angular.x = 0
     enemy_twist.angular.y = 0
 
-    loop_timer = rospy.Rate(10)     # ループの時間調整用　10[Hz]
+    loop_timer = rospy.Rate(5)     # ループの時間調整用 [Hz]
 
 
 
