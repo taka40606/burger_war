@@ -208,7 +208,7 @@ if __name__ == '__main__':
 			# カメラ画像（マーカ位置重ね書き後）描画
 			if len(burger_cv_cam_img) > 0:
 				prcssed_img, cut_img, cut_img_resize = find_marker(burger_cv_cam_img)
-				cv2.imshow("Camera Image", prcssed_img)
+				#cv2.imshow("Camera Image", prcssed_img)
 			# 切り出し画像（リサイズ前）描画
 			if len(cut_img) > 0:
 				if img_switch_counter < len(cut_img):
