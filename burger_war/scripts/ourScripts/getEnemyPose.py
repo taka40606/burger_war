@@ -68,14 +68,14 @@ class GetEnemyPose(object):
 		self.obstacle_direction_pub = rospy.Publisher('obstacle_direction', Float32, queue_size=10)
 
 	def enemyPoseARCallback(self,pose):
-		self.poseAR[0]=pose[0]
-		self.poseAR[1]=pose[1]
-		self.poseAR[2]=pose[2]
+		self.poseAR[0]=pose.x
+		self.poseAR[1]=pose.y
+		self.poseAR[2]=pose.z
 		#print 'enemy_pose_AR'
 		#print pose
-		self.pose_ar.x=self.poseAR.x
-		self.pose_ar.y=self.poseAR.y
-		self.pose_ar.theta=self.poseAR.z
+		self.pose_ar.x=self.poseAR[0]
+		self.pose_ar.y=self.poseAR[1]
+		self.pose_ar.theta=self.poseAR[2]
 
 	def enemyPoseGreenCallback(self,pose):
 		self.pose_green[0]=pose.x
@@ -286,9 +286,9 @@ class GetEnemyPose(object):
 		points=np.dot(rot,points)
 		for i in range(360):
 			#if (1.0<points[0][i] or points[0][i]<-1.0 or 1.0<points[1][i] or points[1][i]<-1.0):
-			#
+			#if (1.1<points[0][i] or points[0][i]<-1.1 or 1.1<points[1][i] or points[1][i]<-1.1):
 			#if (1.05<points[0][i] or points[0][i]<-1.05 or 1.05<points[1][i] or points[1][i]<-1.05):
-			if (1.1<points[0][i] or points[0][i]<-1.1 or 1.1<points[1][i] or points[1][i]<-1.1):
+			if (1.0<points[0][i] or points[0][i]<-1.0 or 1.0<points[1][i] or points[1][i]<-1.0):
 				points[0][i]=0.0
 				points[1][i]=0.0
 		points=np.dot(rot2,points)
@@ -369,21 +369,21 @@ class GetEnemyPose(object):
 		else:
 			self.pose_pub.publish(self.pose)
 		'''
-		if not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
+		if not (self.pose_ar.x==0 and self.pose_ar.y==0 and self.pose_ar.theta==0):
+			self.pose_pub.publish(self.pose_ar)
+			print "AR"
+		elif not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
 			self.pose_pub.publish(self.pose_g)
-			#print "green"
-		elif not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
-			self.pose_pub.publish(self.pose_p)
-			#print "pointcloud"
-		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
-			self.pose_pub.publish(self.pose)
-			#print "maker"
+			print "green"
 		elif not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
 			self.pose_pub.publish(self.pose_r)
-			#print "red"
-		elif not (self.pose_ar.x==0 and self.pose_ar.y==0 and self.pose_ar.theta==0):
-			self.pose_pub.publish(self.pose_ar)
-			#print "AR"
+			print "red"
+		elif not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
+			self.pose_pub.publish(self.pose_p)
+			print "pointcloud"
+		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
+			self.pose_pub.publish(self.pose)
+			print "maker"
 		else:
 			self.pose_pub.publish(self.pose)
 
