@@ -5,7 +5,7 @@
   <!--group ns="blue_bot"-->
   <group ns="red_bot">
       <!-- enemy bot run -->
-      <!--node pkg="burger_war" type="randomRun.py" name="randomRun" output="screen"/-->
+      <node pkg="burger_war" type="randomRun.py" name="randomRun" output="screen"/>
   </group>
 
 <!-- red side robot -->
