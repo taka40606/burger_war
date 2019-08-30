@@ -71,7 +71,7 @@ def odomCallback(my_pose_msg):
 	th=2*math.acos(my_pose_msg.pose.pose.orientation.w)*(math.asin(my_pose_msg.pose.pose.orientation.z)/abs(math.asin(my_pose_msg.pose.pose.orientation.z)))
 	#print th
 
-def enemy_position_calc(image):
+def enemy_position_calc_red(image):
 	#hsv変換
 	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV_FULL)
 	h = hsv[:, :, 0]
@@ -140,7 +140,7 @@ def enemy_position(Tx,Ty,th,distance,side_rad):
 if __name__ == '__main__':
 	OurSubscriber()			# センサ情報おsub用
 	odom_sub = rospy.Subscriber('odom', Odometry, odomCallback)
-	pose_pub = rospy.Publisher('red_ball_position', Pose2D, queue_size=10)
+	pose_pub_red = rospy.Publisher('red_ball_position', Pose2D, queue_size=10)
 	prcssed_img = []			# マーカー認識位置重ね描き後のカメラ画像
 	cut_img = []				# マーカー切り出し画像
 	cut_img_resize = []			# リサイズ後のマーカー切り出し画像
@@ -155,16 +155,16 @@ if __name__ == '__main__':
 		r.sleep()
 		#cv2.imshow("Camera Image2", burger_cv_cam_img)
 		# カメラ画像（マーカ位置重ね書き後）描画
-		distance = 0
-		rad = 0
+		distance_red = 0
+		rad_red = 0
 		if len(burger_cv_cam_img) > 0:
-			prcssed_img, distance, rad = enemy_position_calc(burger_cv_cam_img)
+			prcssed_img, distance_red, rad_red = enemy_position_calc_red(burger_cv_cam_img)
 			#cv2.imshow("Cut Image2", prcssed_img)
-			position = enemy_position(Tx,Ty,th,distance,rad)
-			pose=Pose2D()
-			pose.x=position[1]
-			pose.y=-position[0]
-			pose.theta=0
-			pose_pub.publish(pose)
+			position_red = enemy_position(Tx,Ty,th,distance_red,rad_red)
+			pose_red=Pose2D()
+			pose_red.x=position_red[1]
+			pose_red.y=-position_red[0]
+			pose_red.theta=0
+			pose_pub_red.publish(pose_red)
 	while not rospy.is_shutdown():
 		r.sleep()

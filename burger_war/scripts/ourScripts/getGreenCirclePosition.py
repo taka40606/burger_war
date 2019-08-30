@@ -22,6 +22,7 @@ from sensor_msgs.msg import CompressedImage
 import time
 import copy
 import math
+from getRedBallPosition import enemy_position_calc_red
 
 
 # グローバル変数
@@ -72,14 +73,14 @@ def odomCallback(my_pose_msg):
 	#print th
 
 def enemy_position_calc(image):
-	#画素数
-	wo = 320
-	ho = 240
 	#hsv変換
 	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV_FULL)
 	h = hsv[:, :, 0]
 	s = hsv[:, :, 1]
 	mask = np.zeros(h.shape, dtype=np.uint8)
+	#画素数
+	wo = 320
+	ho = 240
 	#緑色抽出マスク
 	mask[(42 < h) & (h < 120) & (s > 100)] = 255
 	#輪郭抽出
@@ -151,6 +152,7 @@ if __name__ == '__main__':
 	OurSubscriber()			# センサ情報おsub用
 	odom_sub = rospy.Subscriber('odom', Odometry, odomCallback)
 	pose_pub = rospy.Publisher('green_position', Pose2D, queue_size=10)
+	pose_pub_red = rospy.Publisher('red_ball_position', Pose2D, queue_size=10)
 	prcssed_img = []			# マーカー認識位置重ね描き後のカメラ画像
 	cut_img = []				# マーカー切り出し画像
 	cut_img_resize = []			# リサイズ後のマーカー切り出し画像
@@ -167,8 +169,11 @@ if __name__ == '__main__':
 		# カメラ画像（マーカ位置重ね書き後）描画
 		distance = 0
 		rad = 0
+		distance_red = 0
+		rad_red = 0
 		if len(burger_cv_cam_img) > 0:
 			prcssed_img, distance, rad = enemy_position_calc(burger_cv_cam_img)
+			
 			#cv2.imshow("Cut Image2", prcssed_img)
 			position = enemy_position(Tx,Ty,th,distance,rad)
 			pose=Pose2D()
@@ -176,5 +181,12 @@ if __name__ == '__main__':
 			pose.y=-position[0]
 			pose.theta=0
 			pose_pub.publish(pose)
+			prcssed_img, distance_red, rad_red = enemy_position_calc_red(burger_cv_cam_img)
+			position_red = enemy_position(Tx,Ty,th,distance_red,rad_red)
+			pose_red=Pose2D()
+			pose_red.x=position_red[1]
+			pose_red.y=-position_red[0]
+			pose_red.theta=0
+			pose_pub_red.publish(pose_red)
 	while not rospy.is_shutdown():
 		r.sleep()
