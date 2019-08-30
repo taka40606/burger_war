@@ -24,6 +24,8 @@ from sensor_msgs.msg import LaserScan
 
 import is_field_out as myFunc
 
+from aruco_msgs.msg import MarkerArray, Marker
+
 # テスト用
 #import getState
 
@@ -70,6 +72,7 @@ class ARPoseEstimation():
 		self.sub_mybot_odom = rospy.Subscriber('odom', Odometry, self.SubOdom)
 		self.image_sub = rospy.Subscriber("image_raw", Image, self.callback)
 		self.scan_sub = rospy.Subscriber("scan", LaserScan, self.scan)
+		self.pub_target_id = rospy.Publisher('target_id', MarkerArray)
 		
 		
 		self.marker_array_num_first_field = 6 
@@ -148,6 +151,11 @@ class ARPoseEstimation():
 		self.mybot_y_odom = 0
 		self.mybot_yaw_odom = 0
 
+		# for Publishing Marker ID
+		self.my_target_id_msg = Marker()
+		self.my_target_id_msg.id = 0
+		self.my_target_ids_msg = MarkerArray()
+		self.my_target_ids_msg.markers.append(self.my_target_id_msg)
 
 	# self.marker_yaw_mybot_cs[i]
 	# レーザースキャンでマーカーの両端くらいの長さ見て角度補正
@@ -317,6 +325,12 @@ class ARPoseEstimation():
 		vec3 = Vector3(x=self.enemybot_x_field_cs, y=self.enemybot_y_field_cs, z=self.enemybot_angle_field_cs)
 		self.pub_enemybot_pose.publish(vec3)
 	
+		# Publish Marker ID
+		if self.detected_marker_flag == True:
+			for i in range(len(self.detected_ids)):
+				self.my_target_ids_msg.markers[0].id = self.detected_ids[i][0]
+				self.pub_target_id.publish(self.my_target_ids_msg)
+
 
 	# マーカーを見つけてマーカーの姿勢を推定する
 	def callback(self, data):
