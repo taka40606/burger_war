@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import rospy
 import tf
+import actionlib
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from std_msgs.msg import String
 from std_msgs.msg import Int8
 from std_msgs.msg import Float32
@@ -27,10 +29,13 @@ class OnigiriRun(object):
 		self.movebase_status_pub = rospy.Publisher('move_base_state', Int8, queue_size=1)
 		#ROS subscriber
 		self.move_base_status_sub = rospy.Subscriber('move_base/status', GoalStatusArray, self.GoalStatusArrayCallback, queue_size=1)
+		self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
 		self.map_sub = rospy.Subscriber('map', OccupancyGrid, self.mapCallback)
 		self.point_sub = rospy.Subscriber('my_pose', Pose2D, self.moveCallback)
         	self.odom_sub = rospy.Subscriber('odom', Odometry, self.odomCallback)
         	self.obstacle_direction_sub = rospy.Subscriber('obstacle_direction', Float32, self.obstacleDirectionCallback)
+		self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+		self.client.wait_for_server()
 
 	def moveCallback(self,point_):
 		self.point = [point_.x, point_.y, math.sin(point_.theta/2), math.cos(point_.theta/2)]
@@ -41,6 +46,7 @@ class OnigiriRun(object):
 	        twist=Twist()
 	        global back_direction
 	        global th
+                r = rospy.Rate(10)
 	        #print "back_direction"
 	        #print back_direction
 	        #print "th"
@@ -50,20 +56,20 @@ class OnigiriRun(object):
 	        back_direction_tmp=back_direction
 	        while abs(th_tmp-th)<abs(back_direction_tmp):
 	            twist.angular.z=turn_speed*back_direction_tmp/abs(back_direction_tmp)
-	            cmd_vel_pub.publish(twist)
+	            self.cmd_vel_pub.publish(twist)
 	            #print th
 	            r.sleep()
 	        twist.angular.z=0.0
-	        cmd_vel_pub.publish(twist)
+	        self.cmd_vel_pub.publish(twist)
 	        r.sleep()
 	        twist.linear.x=0.2
-	        cmd_vel_pub.publish(twist)
+	        self.cmd_vel_pub.publish(twist)
 	        Tx_old=Tx
 	        Ty_old=Ty
 	        while 0.2>math.sqrt((Tx-Tx_old)*(Tx-Tx_old)+(Ty-Ty_old)*(Ty-Ty_old)):
 	            r.sleep()
 	        twist.linear.x=0.0
-	        cmd_vel_pub.publish(twist)
+	        self.cmd_vel_pub.publish(twist)
 	
 	def obstacleDirectionCallback(self, direction_msg):
 		global back_direction
@@ -85,6 +91,7 @@ class OnigiriRun(object):
 		status=Int8()
 		status.data=self.movebase_status
 		self.movebase_status_pub.publish(status)
+		self.recoveryBehavior()
 		if self.movebase_status!=5: #2
 			#print self.point
 			status_id = 0
@@ -129,6 +136,7 @@ class OnigiriRun(object):
 				self.movebase_status = 3
 				return
 			elif self.movebase_status == 3:
+
 				if status_id == 0:
 					self.movebase_status = 0
 				elif status_id == 3:
@@ -141,6 +149,7 @@ class OnigiriRun(object):
 			#	self.movebase_status = 0
 			#	return
 			elif self.movebase_status == 4:
+				self.client.cancel_goal()
                 		self.recoveryBehavior()
                 		self.movebase_status = 0
                 		return
