@@ -91,7 +91,7 @@ class OnigiriRun(object):
 		status=Int8()
 		status.data=self.movebase_status
 		self.movebase_status_pub.publish(status)
-		self.recoveryBehavior()
+		#self.recoveryBehavior()
 		if self.movebase_status!=5: #2
 			#print self.point
 			status_id = 0
