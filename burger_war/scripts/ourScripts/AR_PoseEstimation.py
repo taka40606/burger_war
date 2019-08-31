@@ -63,16 +63,16 @@ class ARPoseEstimation():
 		# ROS関連
 		rospy.init_node('AR_pose_estimation', anonymous=True) # ノード立ち上げ
 		# publisher
-		self.pub_mybot_pose = rospy.Publisher('ar_mybot_pose', Vector3)
-		self.pub_enemybot_pose = rospy.Publisher('ar_enemybot_pose', Vector3)
+		self.pub_mybot_pose = rospy.Publisher('ar_mybot_pose', Vector3, queue_size=1)
+		self.pub_enemybot_pose = rospy.Publisher('ar_enemybot_pose', Vector3, queue_size=1)
 		# subscriber
 		#self.sub_mybot_odom = rospy.Subscriber('/red_bot/odom', Odometry, self.SubOdom)
 		#self.image_sub = rospy.Subscriber("/red_bot/image_raw", Image, self.callback)
 		#self.scan_sub = rospy.Subscriber("/red_bot/scan", LaserScan, self.scan)
-		self.sub_mybot_odom = rospy.Subscriber('odom', Odometry, self.SubOdom)
-		self.image_sub = rospy.Subscriber("image_raw", Image, self.callback)
-		self.scan_sub = rospy.Subscriber("scan", LaserScan, self.scan)
-		self.pub_target_id = rospy.Publisher('target_id', MarkerArray)
+		self.sub_mybot_odom = rospy.Subscriber('odom', Odometry, self.SubOdom, queue_size=1)
+		self.image_sub = rospy.Subscriber("image_raw", Image, self.callback, queue_size=1)
+		self.scan_sub = rospy.Subscriber("scan", LaserScan, self.scan, queue_size=1)
+		self.pub_target_id = rospy.Publisher('target_id', MarkerArray, queue_size=1)
 		
 		
 		self.marker_array_num_first_field = 6 

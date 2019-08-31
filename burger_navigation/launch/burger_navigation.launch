@@ -186,7 +186,7 @@
 
   <!-- rviz -->
   <group if="$(arg open_rviz)"> 
-    <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(find burger_navigation)/rviz/$(arg robot_name)_navigation.rviz">
+    <node pkg="rviz" type="rviz" name="rviz" required="false" args="-d $(find burger_navigation)/rviz/$(arg robot_name)_navigation.rviz">
       <remap from="/move_base_simple/goal" to="move_base_simple/goal"/>
     </node>
   </group>
