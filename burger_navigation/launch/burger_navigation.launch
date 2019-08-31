@@ -68,10 +68,10 @@
       <param name="laser_model_type"          value="likelihood_field"/>
 
       <param name="odom_model_type"           value="diff"/>
-      <param name="odom_alpha1"               value="0.2"/> <!--"0.1"/-->
-      <param name="odom_alpha2"               value="0.2"/> <!--"0.001"/-->
-      <param name="odom_alpha3"               value="0.4"/> <!--"0.1"/-->
-      <param name="odom_alpha4"               value="0.4"/> <!--"0.001"/-->
+      <param name="odom_alpha1"               value="0.1"/> <!--"0.1"/-->
+      <param name="odom_alpha2"               value="0.1"/> <!--"0.001"/-->
+      <param name="odom_alpha3"               value="0.2"/> <!--"0.1"/-->
+      <param name="odom_alpha4"               value="0.2"/> <!--"0.001"/-->
       <param name="odom_frame_id"             value="$(arg robot_name)/odom"/>
       <param name="base_frame_id"             value="$(arg robot_name)/base_footprint"/>
       <param name="global_frame_id"           value="$(arg robot_name)/map"/>
