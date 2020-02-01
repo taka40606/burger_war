@@ -3,7 +3,11 @@
 <launch>
   <!-- Arguments -->
   <arg name="map_file" default="$(find burger_navigation)/maps/map.yaml"/>
+<<<<<<< HEAD
   <arg name="open_rviz" default="true"/>  <!--default="true"/-->
+=======
+  <arg name="open_rviz" default="false"/>  <!--default="true"/-->
+>>>>>>> 83eaeff9742c90488a787562075650cde3c21a4c
   <arg name="move_forward_only" default="false"/>  <!--default="true"/-->
   <arg name="cmd_vel_topic" default="cmd_vel" />
   <arg name="odom_topic" default="odom" />
