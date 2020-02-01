@@ -271,11 +271,7 @@ if __name__ == '__main__':
     operation_sequence = "Initial Move"
     #operation_sequence = "Okazu Sniper"
     start_time = time.time()
-<<<<<<< HEAD
-    swing_time = 8.0
-=======
     swing_time = 30.0
->>>>>>> 83eaeff9742c90488a787562075650cde3c21a4c
     enemy_distance_threshold = 2.0  #0.6      # 敵からの距離のしきい値
     swing_ang = math.pi/4.0             # 首振り角度　±θ
     swing_num = 4

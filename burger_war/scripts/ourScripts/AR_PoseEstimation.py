@@ -345,11 +345,7 @@ class ARPoseEstimation():
 		gray_img = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
 
 		# エッジを強く(要検討)
-<<<<<<< HEAD
-		gray_img = sharpnessImg(gray_img)
-=======
 		#gray_img = sharpnessImg(gray_img)
->>>>>>> 83eaeff9742c90488a787562075650cde3c21a4c
 		#self.resize_img = cv2.filter2D(self.resize_img, -1, kernel)
 		
 		# マーカー検出
