@@ -2,17 +2,19 @@
 <launch>
 
 <!-- blue side robot -->
-  <group ns="blue_bot">
+  <!--group ns="blue_bot"-->
+  <group ns="red_bot">
       <!-- enemy bot run -->
       <node pkg="burger_war" type="randomRun.py" name="randomRun" output="screen"/>
   </group>
 
 <!-- red side robot -->
-  <group ns="red_bot">
+  <!--group ns="red_bot"-->
+  <group ns="blue_bot">
       <!-- Your robot control node run -->
       <include file="$(find burger_war)/launch/your_burger.launch">
-        <arg name="robot_name" value="red_bot" />
-        <!--arg name="robot_name" value="blue_bot" /-->
+        <!--arg name="robot_name" value="red_bot" /-->
+        <arg name="robot_name" value="blue_bot" />
       </include>
   </group>
 

@@ -30,10 +30,11 @@ enemy_position_num=2 #my start:0 right:1 enemy start:2 left:3
 position=[[-1.3,0,0],[0.0,-1.3,math.pi/2],[1.3,0.0,math.pi],[0.0,1.3,-1*math.pi/2],
 [-0.72051407,-0.74551407,0.0],[0.72051407,-0.74551407,0.0],[0.72051407,0.74551407,0.0],[-0.72051407,0.74551407,0.0]]
 #sniper_pos = [[-1.3,0,0],[0.0,-1.3,math.pi/2],[1.3,0.0,math.pi],[0.0,1.3,-math.pi/2]]
-sniper_pos = [[-1.0,0,0],[0.0,-1.0,math.pi/2],[1.0,0.0,math.pi],[0.0,1.0,-math.pi/2]]
+sniper_pos = [[-1.0,0.0,0.0],[0.0,-1.0,math.pi/2],[1.0,0.0,math.pi],[0.0,1.0,-math.pi/2]]
 #way_pos = [[0.0,-1.0,-math.pi/2],[1.0,0.0,0.0],[0.0,1.0,math.pi/2],[-1.0,0,math.pi]]
-##way_pos = [[-0.9,-0.4,-math.pi / 4.0],[0.9,-0.4,math.pi / 4.0],[0.9,0.4,math.pi * 5.0 / 4.0],[-0.9,0.4,-math.pi * 5.0 / 4.0]]
-##way_pos = [[-0.72051407,-0.74551407,-math.pi / 4.0],[0.72051407,-0.74551407,math.pi / 4.0],[0.72051407,0.74551407,math.pi * 5.0 / 4.0],[-0.72051407,0.74551407,-math.pi * 5.0 / 4.0]]
+##way_pos = [[-0.4,0.9,-math.pi * 3.0 / 4.0],[-0.9,-0.4,-math.pi / 4.0],[0.4,-0.9,math.pi / 4.0],[0.9,0.4,math.pi * 3.0 / 4.0]]
+way_pos = [[-0.4,0.9,-math.pi * 3.0 / 4.0 -math.pi/12.0],[-0.9,-0.4,-math.pi / 4.0 -math.pi/12.0],[0.4,-0.9,math.pi / 4.0 -math.pi/12.0],[0.9,0.4,math.pi * 3.0 / 4.0 -math.pi/12.0]]
+###way_pos = [[-0.72051407,0.74551407,-math.pi * 3.0 / 4.0],[-0.72051407,-0.74551407,-math.pi / 4.0],[0.72051407,-0.74551407,math.pi / 4.0],[0.72051407,0.74551407,math.pi * 3.0 / 4.0]]
 my_point=0
 enemy_point=0
 goal_reached_flg = False    # ゴールに到達したかどうかのフラグ
@@ -184,15 +185,16 @@ def getEnemyDistance(my_pos, enemy_pos):
     return distance
 
 # その場で首振り
-def swingBurger(my_pos, pivot_pos, pos_pub, swing_ang):
+def swingBurger(my_pos, pivot_pos, pos_pub, swing_ang, swing_timer, swing_time, swing_num):
     next_ang = 0                # 次に向く角度
+    #ang_error = math.pi / 36.0
 
-    if my_pos[2] - pivot_pos[2] >= 0:
-        next_ang = pivot_pos[2] - swing_ang
-    else:   #my_pos[2] - pivot_pos[2] < 0:
+    if int(swing_timer / (swing_time / swing_num)) % 2 == 0:
         next_ang = pivot_pos[2] + swing_ang
-    
+    else:
+        next_ang = pivot_pos[2] - swing_ang
     InputPose(pivot_pos[0], pivot_pos[1], next_ang)
+
 
 # 敵を見続ける速度
 def lookaEnemytTurnVel(my_pos, enemy_pos):
@@ -207,7 +209,8 @@ def lookaEnemytTurnVel(my_pos, enemy_pos):
 # 敵のいる角度
 def lookatEnemyAng(my_pos, enemy_pos):
     if enemy_pos[0] - my_pos[0] != 0:
-        enemy_ang = math.atan( (enemy_pos[1] - my_pos[1]) / (enemy_pos[0] - my_pos[0]) )
+        #enemy_ang = math.atan( (enemy_pos[1] - my_pos[1]) / (enemy_pos[0] - my_pos[0]) )
+        enemy_ang = math.atan2( enemy_pos[1] - my_pos[1], enemy_pos[0] - my_pos[0] )
 
     return enemy_ang
 
@@ -264,12 +267,14 @@ if __name__ == '__main__':
     global status
 
     global goal_reached_flg
+
     operation_sequence = "Initial Move"
     #operation_sequence = "Okazu Sniper"
     start_time = time.time()
-    swing_time = 7.0
+    swing_time = 8.0
     enemy_distance_threshold = 2.0  #0.6      # 敵からの距離のしきい値
     swing_ang = math.pi/4.0             # 首振り角度　±θ
+    swing_num = 4
     zone_num = 4    # フィールドを4つに分けてます　スタート位置が0で左回り
     my_zone_no = 0
     next_zone_no = 0
@@ -284,7 +289,7 @@ if __name__ == '__main__':
     enemy_twist.angular.x = 0
     enemy_twist.angular.y = 0
 
-    loop_timer = rospy.Rate(10)     # ループの時間調整用　10[Hz]
+    loop_timer = rospy.Rate(5)     # ループの時間調整用 [Hz]
 
 
 
@@ -307,7 +312,15 @@ if __name__ == '__main__':
             InputPose(Tx, Ty, enemy_look_ang)
         else:   # 敵が居ない or 距離が遠い
             if operation_sequence == "Moving to Next Point":      # 次のポイントへ移動
-                if topoint_flg:               # 狙撃ポイントへ
+                if onway_flg:
+                    if not goal_reached_flg:
+                        my_zone_no = (checkPosition(Tx,Ty))[0]
+                        InputPose(way_pos[next_zone_no][0], way_pos[next_zone_no][1], way_pos[next_zone_no][2])
+                    else:
+                        goal_reached_flg = False
+                        onway_flg = False
+                        topoint_flg = True
+                elif topoint_flg:               # 狙撃ポイントへ
                     #print "My Zone: " + str(my_zone_no)
                     #print "Next Zone: " + str(next_zone_no)
                     if not goal_reached_flg:
@@ -315,12 +328,13 @@ if __name__ == '__main__':
                         InputPose(sniper_pos[next_zone_no][0], sniper_pos[next_zone_no][1], sniper_pos[next_zone_no][2])
                     else:       # ポイントに到着したら
                         goal_reached_flg = False
+                        onway_flg = False
                         topoint_flg = False
                         operation_sequence = "Okazu Sniper"
                         start_time = time.time()
                 else:
                     goal_reached_flg = False
-                    #onway_flg = False
+                    onway_flg = False
                     topoint_flg = False
                     operation_sequence = "Okazu Sniper"
                     start_time = time.time()
@@ -363,13 +377,13 @@ if __name__ == '__main__':
                     else:
                         next_zone_no = 0
                     initial_motion_flg = True
-                    #onway_flg = True
-                    topoint_flg = True
+                    onway_flg = True
+                    #topoint_flg = True
                     goal_reached_flg = False
                     operation_sequence = "Moving to Next Point"
                 else:
                     my_zone_no = (checkPosition(Tx,Ty))[0]
-                    swingBurger([Tx, Ty, th], sniper_pos[my_zone_no], point_pub, swing_ang)
+                    swingBurger([Tx, Ty, th], sniper_pos[my_zone_no], point_pub, swing_ang, elapsed_time, swing_time, swing_num)
                     
             """
             else:
