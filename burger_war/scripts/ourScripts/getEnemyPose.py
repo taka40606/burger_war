@@ -214,6 +214,7 @@ class GetEnemyPose(object):
 		#print self.th
 
 	def scanCallback(self,scan): #LiDARの点群を読み取り障害物の位置と相手の位置を推定
+		#障害物位置
 		back_direction=0.0
 		tmp_direction=100.0
 		ave_range=[0.0]*10
@@ -252,7 +253,10 @@ class GetEnemyPose(object):
 		#print "obstacle_direction"
 		#print obstacle_direction
 		#print "obstacle--------------------------"
+
+		#相手位置
 		points=np.array([[0.0]*360,[0.0]*360])
+		#回転行列
 		rot=np.array([[math.cos(math.pi/4),math.sin(math.pi/4)],[-1*math.sin(math.pi/4),math.cos(math.pi/4)]])
 		rot2=np.array([[math.cos(-1*math.pi/4),math.sin(-1*math.pi/4)],[-1*math.sin(-1*math.pi/4),math.cos(-1*math.pi/4)]])
 		rot3=np.array([[math.cos(-self.th),math.sin(-self.th)],[-1*math.sin(-self.th),math.cos(-self.th)]])
@@ -261,7 +265,8 @@ class GetEnemyPose(object):
 		for i in range(360):
 			points[1][i]=scan.ranges[i]*math.sin(2*math.pi*i/360)
 			points[0][i]=scan.ranges[i]*math.cos(2*math.pi*i/360)
-		points=np.dot(rot3,points)
+		points=np.dot(rot3,points)#自分の向き分点群回転
+		#障害物内除外
 		for i in range(360):
 			points[0][i]+=self.Tx
 			points[1][i]+=self.Ty
@@ -290,6 +295,7 @@ class GetEnemyPose(object):
 					points[0][i]=0.0
 					points[1][i]=0.0
 		points=np.dot(rot,points)
+		#フィールド外除外
 		for i in range(360):
 			#if (1.0<points[0][i] or points[0][i]<-1.0 or 1.0<points[1][i] or points[1][i]<-1.0):
 			#if (1.1<points[0][i] or points[0][i]<-1.1 or 1.1<points[1][i] or points[1][i]<-1.1):
@@ -300,6 +306,7 @@ class GetEnemyPose(object):
 		points=np.dot(rot2,points)
 		count=0
 		ave=[0.0]*2
+		#(0,0)を除外した点群の重心算出
 		for i in range(360):
 			if (0.001<points[0][i] or points[0][i]<-0.001 or 0.001<points[1][i] or points[1][i]<-0.001):
 				count+=1
@@ -309,15 +316,17 @@ class GetEnemyPose(object):
 				#print points[1][i]
 				#print count
 		if count !=0:
-			ave[0]=ave[0]/count
-			ave[1]=ave[1]/count
+			ave[0]=ave[0]/count #重心x
+			ave[1]=ave[1]/count #重心y
 		'''
 		if self.myColor==-1:
 			points=np.dot(rot4,points)
 		'''
+		#点群の重心算出して一番離れている点を除外するのを
+		#重心と一番離れてる点の距離は一定値以内になるまで繰り返す
 		while True:
-			maxL=0.0
-			maxi=-1
+			maxL=0.0 #一番離れてる点の距離
+			maxi=-1 #一番離れてる点の番号
 			for i in range(360):
 				if ((0.001<points[0][i] or points[0][i]<-0.001 or 0.001<points[1][i] or points[1][i]<-0.001)
 				and maxL < math.sqrt((ave[0]-points[0][i])*(ave[0]-points[0][i])+(ave[1]-points[1][i])*(ave[1]-points[1][i])) ):
@@ -395,7 +404,8 @@ class GetEnemyPose(object):
 			self.OLDpose=self.pose
 			print "maker"
 		else:
-			self.pose_pub.publish(self.OLDpose)
+			self.pose_pub.publish(self.pose) #LOSTした時は0,0,0
+			#self.pose_pub.publish(self.OLDpose) #LOSTした時は最新の相手位置？
 			print "LOST"
 
 	def lookatEnemyAng(self,my_pos, enemy_pos): #相手の方向を算出
