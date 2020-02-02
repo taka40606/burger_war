@@ -1,7 +1,8 @@
 # ourScripts
 
 ## AR_PoseEstimation.py
-相手のARマーカーから相手位置推定。マーカーが読み取れれば一番正確。①
+相手のARマーカーから相手と自分の位置推定。マーカーが読み取れれば一番正確。①
+オドメトリの補助に使う？
 
 ## decisionMaking.py
 行動を決定
