@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # license removed for brevity
+
 import re
 import rospy
 from nav_msgs.msg import OccupancyGrid
@@ -16,18 +18,22 @@ import numpy as np
 
 class GetEnemyPose(object):
 	def __init__(self):
-		self.pose_p=Pose2D()
-		self.pose=Pose2D()
-		self.pose_r=Pose2D()
-		self.pose_g=Pose2D()
-		self.pose_ar=Pose2D()
+		self.pose_p=Pose2D() #LiDARの点群を使って推定した相手のx,y,θ
+		self.pose=Pose2D()   #相手が読んだマーカー位置から推定した相手のx,y,θ
+		self.pose_r=Pose2D() #赤玉を使って推定した相手のx,y,θ
+		self.pose_g=Pose2D() #緑マーカーを使って推定した相手のx,y,θ
+		self.pose_ar=Pose2D() #ARマーカーを使って推定した相手のx,y,θ
+
+		self.pose_red_ball=[0.0]*3 #赤玉を使って推定した相手のx,y,θを保存
+		self.pose_green=[0.0]*3 #緑マーカーを使って推定した相手のx,y,θを保存
+		self.poseAR=[0.0]*3 #ARマーカーを使って推定した相手のx,y,θを保存
+
 		self.NEWtarget=[0]*18
 		self.OLDtarget=[0]*18
 		self.flag=[0]*18
-		self.pose_red_ball=[0.0]*3
-		self.pose_green=[0.0]*3
-		self.poseAR=[0.0]*3
-		self.obstacle=[0.0]*2
+		self.obstacle=[0.0]*2 #障害物の位置
+
+		#マーカーを読み取った推定位置
 		self.makerPose=[[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],
 		[0.9,0.5,math.pi],[0.0,0.5,0.0],[0.9,-0.5,math.pi],[0.0,-0.5,0.0],
 		[0.0,0.5,math.pi],[-0.9,0.5,0.0],[0.0,-0.5,math.pi],[-0.9,-0.5,0.0],
@@ -108,14 +114,14 @@ class GetEnemyPose(object):
 			self.myColor=-1
 		#print myColor
 	'''
-	def checkMySide(self):
+	def checkMySide(self): #自分が赤or青を取得
 		if rospy.get_param("send_id_to_judge/side") == 'r':
 			Color=1
 		elif rospy.get_param("send_id_to_judge/side") == 'b':
 			Color=-1
 		return Color
 
-	def warStateCallback(self,warStates):
+	def warStateCallback(self,warStates): #戦況を取得
 		r_point=0
 		b_point=0
 		flags=0
@@ -198,7 +204,7 @@ class GetEnemyPose(object):
 		#print r_point
 		#print b_point
 
-	def odomCallback(self,my_pose_msg): #r:-1.3,0,0 b:1.3,0,-pi
+	def odomCallback(self,my_pose_msg): #r:-1.3,0,0 b:1.3,0,-pi#自己位置推定（オドメトリ）
 		self.Ty=-1*my_pose_msg.pose.pose.position.x
 		self.Tx=my_pose_msg.pose.pose.position.y
 		#z=my_pose_msg.pose.pose.orientation.z
@@ -207,7 +213,7 @@ class GetEnemyPose(object):
 		self.th=2*math.acos(my_pose_msg.pose.pose.orientation.w)*(math.asin(my_pose_msg.pose.pose.orientation.z)/abs(math.asin(my_pose_msg.pose.pose.orientation.z)))-math.pi/2
 		#print self.th
 
-	def scanCallback(self,scan):
+	def scanCallback(self,scan): #LiDARの点群を読み取り障害物の位置と相手の位置を推定
 		back_direction=0.0
 		tmp_direction=100.0
 		ave_range=[0.0]*10
@@ -354,13 +360,12 @@ class GetEnemyPose(object):
 					self.pose_p.x=0.0
 					self.pose_p.y=0.0
 					self.pose_p.theta=0.0
-				#self.pose_pub.publish(self.pose_p)
 				break
 			
 		#print "pointcloud------------------------------------------------------"
 		self.integratePoses()
 
-	def integratePoses(self):
+	def integratePoses(self): #相手位置情報を統合しておpub
 		'''
 		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
@@ -371,23 +376,29 @@ class GetEnemyPose(object):
 		'''
 		if not (self.pose_ar.x==0 and self.pose_ar.y==0 and self.pose_ar.theta==0):
 			self.pose_pub.publish(self.pose_ar)
+			self.OLDpose=self.pose_ar
 			print "AR"
 		elif not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
 			self.pose_pub.publish(self.pose_g)
+			self.OLDpose=self.pose_g
 			print "green"
 		elif not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
 			self.pose_pub.publish(self.pose_r)
+			self.OLDpose=self.pose_r
 			print "red"
 		elif not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
+			self.OLDpose=self.pose_p
 			print "pointcloud"
 		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
 			self.pose_pub.publish(self.pose)
+			self.OLDpose=self.pose
 			print "maker"
 		else:
-			self.pose_pub.publish(self.pose)
+			self.pose_pub.publish(self.OLDpose)
+			print "LOST"
 
-	def lookatEnemyAng(self,my_pos, enemy_pos):
+	def lookatEnemyAng(self,my_pos, enemy_pos): #相手の方向を算出
 		if enemy_pos[0] - my_pos[0] != 0:
 			enemy_ang = math.atan( (enemy_pos[1] - my_pos[1]) / (enemy_pos[0] - my_pos[0]) )
 		return enemy_ang
