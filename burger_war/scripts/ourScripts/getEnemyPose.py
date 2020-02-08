@@ -19,7 +19,7 @@ import numpy as np
 class GetEnemyPose(object):
 	def __init__(self):
 		self.pose_p=Pose2D() #LiDARの点群を使って推定した相手のx,y,θ
-		self.pose=Pose2D()   #相手が読んだマーカー位置から推定した相手のx,y,θ
+		self.pose_m=Pose2D()   #相手が読んだマーカー位置から推定した相手のx,y,θ
 		self.pose_r=Pose2D() #赤玉を使って推定した相手のx,y,θ
 		self.pose_g=Pose2D() #緑マーカーを使って推定した相手のx,y,θ
 		self.pose_ar=Pose2D() #ARマーカーを使って推定した相手のx,y,θ
@@ -73,6 +73,12 @@ class GetEnemyPose(object):
 		self.points_array_pub = rospy.Publisher('points_array', Int32MultiArray, queue_size=10)
 		self.obstacle_direction_pub = rospy.Publisher('obstacle_direction', Float32, queue_size=10)
 
+	def writeData(self,str): 
+		path_w = '/home/taka/catkin_ws/src/burger_war/burger_war/scripts/ourScripts/test_w.txt'
+		with open(path_w, mode='a') as f:
+			f.write(str)
+		return str
+
 	def enemyPoseARCallback(self,pose):
 		self.poseAR[0]=pose.x
 		self.poseAR[1]=pose.y
@@ -82,6 +88,8 @@ class GetEnemyPose(object):
 		self.pose_ar.x=self.poseAR[0]
 		self.pose_ar.y=self.poseAR[1]
 		self.pose_ar.theta=self.poseAR[2]
+		if not (self.pose_ar.x==0 and self.pose_ar.y==0 and self.pose_ar.theta==0):
+			self.writeData("AR,"+str(self.pose_ar.x)+","+str(self.pose_ar.y)+","+str(self.pose_ar.theta)+"\n")
 
 	def enemyPoseGreenCallback(self,pose):
 		self.pose_green[0]=pose.x
@@ -92,6 +100,8 @@ class GetEnemyPose(object):
 		self.pose_g.x=self.pose_green[0]
 		self.pose_g.y=self.pose_green[1]
 		self.pose_g.theta=0.0
+		if not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
+			self.writeData("green,"+str(self.pose_g.x)+","+str(self.pose_g.y)+","+str(self.pose_g.theta)+"\n")
 
 	def enemyPoseRedBallCallback(self,pose):
 		self.pose_red_ball[0]=pose.x
@@ -102,6 +112,9 @@ class GetEnemyPose(object):
 		self.pose_r.x=self.pose_red_ball[0]
 		self.pose_r.y=self.pose_red_ball[1]
 		self.pose_r.theta=0.0
+		if not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
+			self.writeData("red,"+str(self.pose_r.x)+","+str(self.pose_r.y)+","+str(self.pose_r.theta)+"\n")
+
 	'''
 	def mapCallback(self,map_info):
 		self.my_bot_id = map_info.header.frame_id
@@ -170,18 +183,18 @@ class GetEnemyPose(object):
 					#print "enemyPose: "
 					#print self.enemyPose
 					#pose=Pose2D()
-					self.pose.x=self.enemyPose[0]
-					self.pose.y=self.enemyPose[1]
-					self.pose.theta=self.enemyPose[2]
-					#self.pose_pub.publish(self.pose)
+					self.pose_m.x=self.enemyPose[0]
+					self.pose_m.y=self.enemyPose[1]
+					self.pose_m.theta=self.enemyPose[2]
+					#self.pose_pub.publish(self.pose_m)
 			elif self.NEWtarget[i]==self.OLDtarget[i]:
 				self.flag[i]=0
 		if flags==0:
-			self.pose.x=0.0
-			self.pose.y=0.0
-			self.pose.theta=0.0
+			self.pose_m.x=0.0
+			self.pose_m.y=0.0
+			self.pose_m.theta=0.0
 		#print "pose_est"
-		#print self.pose
+		#print self.pose_m
 		if self.myColor==1:
 			self.myPoint=r_point
 			self.enemyPoint=b_point
@@ -203,6 +216,8 @@ class GetEnemyPose(object):
 		#print flag
 		#print r_point
 		#print b_point
+		if not (self.pose_m.x==0 and self.pose_m.y==0 and self.pose_m.theta==0):
+			self.writeData("maker,"+str(self.pose_m.x)+","+str(self.pose_m.y)+","+str(self.pose_m.theta)+"\n")
 
 	def odomCallback(self,my_pose_msg): #r:-1.3,0,0 b:1.3,0,-pi#自己位置推定（オドメトリ）
 		self.Ty=-1*my_pose_msg.pose.pose.position.x
@@ -370,11 +385,13 @@ class GetEnemyPose(object):
 					self.pose_p.y=0.0
 					self.pose_p.theta=0.0
 				break
-			
+		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
+			self.writeData("pointcloud,"+str(self.pose_p.x)+","+str(self.pose_p.y)+","+str(self.pose_p.theta)+"\n")
 		#print "pointcloud------------------------------------------------------"
 		self.integratePoses()
 
 	def integratePoses(self): #相手位置情報を統合しておpub
+
 		'''
 		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
@@ -386,27 +403,35 @@ class GetEnemyPose(object):
 		if not (self.pose_ar.x==0 and self.pose_ar.y==0 and self.pose_ar.theta==0):
 			self.pose_pub.publish(self.pose_ar)
 			self.OLDpose=self.pose_ar
+			#self.writeData("AR,"+str(self.pose_ar.x)+","+str(self.pose_ar.y)+","+str(self.pose_ar.theta)+"\n")
 			print "AR"
 		elif not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
 			self.pose_pub.publish(self.pose_g)
 			self.OLDpose=self.pose_g
+			#self.writeData("green,"+str(self.pose_g.x)+","+str(self.pose_g.y)+","+str(self.pose_g.theta)+"\n")
 			print "green"
 		elif not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
 			self.pose_pub.publish(self.pose_r)
 			self.OLDpose=self.pose_r
+			#self.writeData("red,"+str(self.pose_r.x)+","+str(self.pose_r.y)+","+str(self.pose_r.theta)+"\n")
 			print "red"
 		elif not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
 			self.OLDpose=self.pose_p
+			#self.writeData("pointcloud,"+str(self.pose_p.x)+","+str(self.pose_p.y)+","+str(self.pose_p.theta)+"\n")
 			print "pointcloud"
-		elif not (self.pose.x==0 and self.pose.y==0 and self.pose.theta==0):
-			self.pose_pub.publish(self.pose)
-			self.OLDpose=self.pose
+		elif not (self.pose_m.x==0 and self.pose_m.y==0 and self.pose_m.theta==0):
+			self.pose_pub.publish(self.pose_m)
+			self.OLDpose=self.pose_m
+			#self.writeData("maker,"+str(self.pose_m.x)+","+str(self.pose_m.y)+","+str(self.pose_m.theta)+"\n")
 			print "maker"
 		else:
-			self.pose_pub.publish(self.pose) #LOSTした時は0,0,0
+			self.pose_pub.publish(self.pose_m) #LOSTした時は0,0,0
 			#self.pose_pub.publish(self.OLDpose) #LOSTした時は最新の相手位置？
+			self.writeData("LOST\n")
 			print "LOST"
+
+
 
 	def lookatEnemyAng(self,my_pos, enemy_pos): #相手の方向を算出
 		if enemy_pos[0] - my_pos[0] != 0:

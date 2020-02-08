@@ -22,6 +22,13 @@ ros インストール
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 sudo apt-key adv --keyserver 'hkp://ha.pool.sks-keyservers.net:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 sudo apt-get update
+
+#gazebo7.最新版を選択するため
+sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+sudo apt-get update
+
+
 sudo apt-get install ros-kinetic-desktop-full
 ```
 環境設定
@@ -61,6 +68,9 @@ git clone https://github.com/OneNightROBOCON/burger_war
 ```
 export GAZEBO_MODEL_PATH=$HOME/catkin_ws/src/burger_war/burger_war/models/
 ```
+```
+export TURTLEBOT3_MODEL=burger
+```
 シェルごとに毎回実行するのは面倒なので上記は`~/.bashrc`に書いておくと便利です｡
 
 ### 3. 依存ライブラリのインストール
@@ -80,7 +90,11 @@ sudo apt-get install ros-kinetic-turtlebot3 ros-kinetic-turtlebot3-msgs ros-kine
 # aruco (ARマーカー読み取りライブラリ）
 sudo apt-get install ros-kinetic-aruco-ros
 ```
-
+```
+#slamとnavigation
+sudo apt install ros-kinetic-slam-gmapping
+sudo apt install ros-kinetic-navigation
+```
 
 ### 5. make
 ```
