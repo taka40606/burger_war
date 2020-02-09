@@ -434,27 +434,27 @@ class GetEnemyPose(object):
 			self.pose_pub.publish(self.pose_ar)
 			self.OLDpose=self.pose_ar
 			#self.writeData("AR,"+str(self.pose_ar.x)+","+str(self.pose_ar.y)+","+str(self.pose_ar.theta)+"\n")
-			print "AR"
+			print "AR"+str(self.pose_ar)
 		elif not (self.pose_g.x==0 and self.pose_g.y==0 and self.pose_g.theta==0):
 			self.pose_pub.publish(self.pose_g)
 			self.OLDpose=self.pose_g
 			#self.writeData("green,"+str(self.pose_g.x)+","+str(self.pose_g.y)+","+str(self.pose_g.theta)+"\n")
-			print "green"
+			print "green"+str(self.pose_g)
 		elif not (self.pose_r.x==0 and self.pose_r.y==0 and self.pose_r.theta==0):
 			self.pose_pub.publish(self.pose_r)
 			self.OLDpose=self.pose_r
 			#self.writeData("red,"+str(self.pose_r.x)+","+str(self.pose_r.y)+","+str(self.pose_r.theta)+"\n")
-			print "red"
+			print "red"+str(self.pose_r)
 		elif not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.pose_pub.publish(self.pose_p)
 			self.OLDpose=self.pose_p
 			#self.writeData("pointcloud,"+str(self.pose_p.x)+","+str(self.pose_p.y)+","+str(self.pose_p.theta)+"\n")
-			print "pointcloud"
+			print "pointcloud"+str(self.pose_p)
 		elif not (self.pose_m.x==0 and self.pose_m.y==0 and self.pose_m.theta==0):
 			self.pose_pub.publish(self.pose_m)
 			self.OLDpose=self.pose_m
 			#self.writeData("maker,"+str(self.pose_m.x)+","+str(self.pose_m.y)+","+str(self.pose_m.theta)+"\n")
-			print "maker"
+			print "maker"+str(self.pose_m)
 		else:
 			self.pose_pub.publish(self.pose_m) #LOSTした時は0,0,0
 			#self.pose_pub.publish(self.OLDpose) #LOSTした時は最新の相手位置？
