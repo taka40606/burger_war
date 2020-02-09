@@ -33,6 +33,14 @@ class GetEnemyPose(object):
 		self.flag=[0]*18
 		self.obstacle=[0.0]*2 #障害物の位置
 
+		#field
+		self.field_width=0.2400
+		self.center_obstacle_width=0.35
+		self.center_obstacle_length=0.35	
+		self.corner_obstacle_width=0.2
+		self.corner_obstacle_length=0.15
+		self.corner_obstacle_pos=0.53
+
 		#マーカーを読み取った推定位置
 		self.makerPose=[[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],
 		[0.9,0.5,math.pi],[0.0,0.5,0.0],[0.9,-0.5,math.pi],[0.0,-0.5,0.0],
@@ -219,14 +227,13 @@ class GetEnemyPose(object):
 		if not (self.pose_m.x==0 and self.pose_m.y==0 and self.pose_m.theta==0):
 			self.writeData("maker,"+str(self.pose_m.x)+","+str(self.pose_m.y)+","+str(self.pose_m.theta)+"\n")
 
-	def odomCallback(self,my_pose_msg): #r:-1.3,0,0 b:1.3,0,-pi#自己位置推定（オドメトリ）
-		self.Ty=-1*my_pose_msg.pose.pose.position.x
+	def odomCallback(self,my_pose_msg): #r:-1.3,0,0 b:1.3,0,-pi#自己位置推定（オドメトリ）は初期位置が原点
+		self.Ty=-1*my_pose_msg.pose.pose.position.x+1.3*self.myColor
 		self.Tx=my_pose_msg.pose.pose.position.y
 		#z=my_pose_msg.pose.pose.orientation.z
 		#w=my_pose_msg.pose.pose.orientation.w
 		#th=2*math.acos(w)*(math.asin(z)/abs(math.asin(z)))
-		self.th=2*math.acos(my_pose_msg.pose.pose.orientation.w)*(math.asin(my_pose_msg.pose.pose.orientation.z)/abs(math.asin(my_pose_msg.pose.pose.orientation.z)))-math.pi/2
-		#print self.th
+		self.th=(2*math.acos(my_pose_msg.pose.pose.orientation.w)*(math.asin(my_pose_msg.pose.pose.orientation.z)/abs(math.asin(my_pose_msg.pose.pose.orientation.z)))-math.pi/2)
 
 	def scanCallback(self,scan): #LiDARの点群を読み取り障害物の位置と相手の位置を推定
 		#障害物位置
@@ -269,7 +276,7 @@ class GetEnemyPose(object):
 		#print obstacle_direction
 		#print "obstacle--------------------------"
 
-		#相手位置
+		#点群位置
 		points=np.array([[0.0]*360,[0.0]*360])
 		#回転行列
 		rot=np.array([[math.cos(math.pi/4),math.sin(math.pi/4)],[-1*math.sin(math.pi/4),math.cos(math.pi/4)]])
@@ -280,11 +287,14 @@ class GetEnemyPose(object):
 		for i in range(360):
 			points[1][i]=scan.ranges[i]*math.sin(2*math.pi*i/360)
 			points[0][i]=scan.ranges[i]*math.cos(2*math.pi*i/360)
+			#print "step1/"+str(i)+"/"+str(points[0][i])+"/"+str(points[1][i])
 		points=np.dot(rot3,points)#自分の向き分点群回転
+		print self.Tx,self.Ty,self.th,self.my_side,self.myColor
 		#障害物内除外
 		for i in range(360):
-			points[0][i]+=self.Tx
-			points[1][i]+=self.Ty
+			points[0][i]=points[0][i]+self.Tx
+			points[1][i]=points[1][i]+self.Ty
+
 			'''
 			if ((0.235<points[0][i]<0.735 and 0.305<points[1][i]<0.805) or
 				(-0.735<points[0][i]<-0.235 and -0.755<points[1][i]<-0.305) or
@@ -296,28 +306,42 @@ class GetEnemyPose(object):
 				(0.23<points[0][i]<0.83 and -0.805<points[1][i]<-0.255) or
 				(-0.83<points[0][i]<-0.23 and 0.255<points[1][i]<0.805) or
 				(-0.375<points[0][i]<0.375 and -0.375<points[1][i]<0.375)):
+			#ロボコン本戦使用
 			if ((0.33<points[0][i]<0.73 and 0.355<points[1][i]<0.705) or
 				(-0.73<points[0][i]<-0.33 and -0.705<points[1][i]<-0.355) or
 				(0.33<points[0][i]<0.73 and -0.705<points[1][i]<-0.355) or
 				(-0.73<points[0][i]<-0.33 and 0.355<points[1][i]<0.705) or
 				(-0.275<points[0][i]<0.275 and -0.275<points[1][i]<0.275)):
+
+			self.offset=0.2
+			if ((self.corner_obstacle_pos - self.corner_obstacle_width/2 - self.offset <points[0][i]<self.corner_obstacle_pos + self.corner_obstacle_width/2 + self.offset and
+				 self.corner_obstacle_pos - self.corner_obstacle_length/2 - self.offset <points[1][i]<self.corner_obstacle_pos + self.corner_obstacle_length/2 + self.offset) or			#corner
+				(-self.corner_obstacle_pos - self.corner_obstacle_width/2 - self.offset <points[0][i]<-self.corner_obstacle_pos + self.corner_obstacle_width/2 + self.offset and
+				 self.corner_obstacle_pos - self.corner_obstacle_length/2 - self.offset <points[1][i]<self.corner_obstacle_pos + self.corner_obstacle_length/2 + self.offset) or			#corner
+				(-self.corner_obstacle_pos - self.corner_obstacle_width/2 - self.offset <points[0][i]<-self.corner_obstacle_pos + self.corner_obstacle_width/2 + self.offset and
+				 self.corner_obstacle_pos - self.corner_obstacle_length/2 - self.offset <points[1][i]<self.corner_obstacle_pos + self.corner_obstacle_length/2 + self.offset) or			#corner
+				(-self.corner_obstacle_pos - self.corner_obstacle_width/2 - self.offset <points[0][i]<-self.corner_obstacle_pos + self.corner_obstacle_width/2 + self.offset and
+				 -self.corner_obstacle_pos - self.corner_obstacle_length/2 - self.offset <points[1][i]<-self.corner_obstacle_pos + self.corner_obstacle_length/2 + self.offset) or			#corner
+				(-self.center_obstacle_length/2 - self.offset<points[0][i]<self.center_obstacle_length/2 - self.offset and -self.center_obstacle_length/2 - self.offset<points[1][i]<self.center_obstacle_length/2 - self.offset)):
 			'''
-			if ((0.33<points[1][i]<0.73 and 0.355<points[0][i]<0.705) or
-				(-0.73<points[1][i]<-0.33 and -0.705<points[0][i]<-0.355) or
-				(0.33<points[1][i]<0.73 and -0.705<points[0][i]<-0.355) or
-				(-0.73<points[1][i]<-0.33 and 0.355<points[0][i]<0.705) or
-				(-0.275<points[0][i]<0.275 and -0.275<points[1][i]<0.275)):
+			if ((0.23<points[0][i]<0.83 and 0.255<points[1][i]<0.805) or
+				(-0.83<points[0][i]<-0.23 and -0.805<points[1][i]<-0.255) or
+				(0.23<points[0][i]<0.83 and -0.805<points[1][i]<-0.255) or
+				(-0.83<points[0][i]<-0.23 and 0.255<points[1][i]<0.805) or
+				(-0.375<points[0][i]<0.375 and -0.375<points[1][i]<0.375)):
 					points[0][i]=0.0
 					points[1][i]=0.0
+			print "step2/"+str(i)+"/"+str(points[0][i])+"/"+str(points[1][i])
 		points=np.dot(rot,points)
 		#フィールド外除外
 		for i in range(360):
-			#if (1.0<points[0][i] or points[0][i]<-1.0 or 1.0<points[1][i] or points[1][i]<-1.0):
+			if (1.0<points[0][i] or points[0][i]<-1.0 or 1.0<points[1][i] or points[1][i]<-1.0):
 			#if (1.1<points[0][i] or points[0][i]<-1.1 or 1.1<points[1][i] or points[1][i]<-1.1):
 			#if (1.05<points[0][i] or points[0][i]<-1.05 or 1.05<points[1][i] or points[1][i]<-1.05):
-			if (1.0<points[0][i] or points[0][i]<-1.0 or 1.0<points[1][i] or points[1][i]<-1.0):
+			#if (self.field_width/2 - self.offset<points[0][i] or points[0][i]<-self.field_width/2 + self.offset or self.field_width/2 - self.offset<points[1][i] or points[1][i]<-self.field_width/2 + self.offset):
 				points[0][i]=0.0
 				points[1][i]=0.0
+			#print "step3/"+str(i)+"/"+str(points[0][i])+"/"+str(points[1][i])
 		points=np.dot(rot2,points)
 		count=0
 		ave=[0.0]*2
@@ -327,7 +351,7 @@ class GetEnemyPose(object):
 				count+=1
 				ave[0]+=points[0][i]
 				ave[1]+=points[1][i]
-				#print points[0][i]
+				print str(count)+"/"+str(points[0][i])+"/"+str(points[1][i])
 				#print points[1][i]
 				#print count
 		if count !=0:
@@ -385,6 +409,12 @@ class GetEnemyPose(object):
 					self.pose_p.y=0.0
 					self.pose_p.theta=0.0
 				break
+		if self.myColor==1:#red sideならば反転？
+			self.pose_p.x=self.pose_p.x
+			self.pose_p.y=-self.pose_p.y
+		if self.myColor==-1:#
+			self.pose_p.x=-self.pose_p.x
+			self.pose_p.y=self.pose_p.y
 		if not (self.pose_p.x==0 and self.pose_p.y==0 and self.pose_p.theta==0):
 			self.writeData("pointcloud,"+str(self.pose_p.x)+","+str(self.pose_p.y)+","+str(self.pose_p.theta)+"\n")
 		#print "pointcloud------------------------------------------------------"
